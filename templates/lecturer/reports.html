@@ -279,8 +279,11 @@
                    class="inline-flex items-center justify-center bg-white text-black border border-black py-2 px-4 rounded-md hover:bg-gray-50 active:bg-gray-100 text-sm">
                     Manage Marks
                 </a>
-                <button onclick="window.print()" class="inline-flex items-center justify-center bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800 active:bg-gray-900 text-sm">
-                    Print Report
+                <button onclick="printReport('attendance')" class="inline-flex items-center justify-center bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800 active:bg-gray-900 text-sm">
+                    Print Attendance
+                </button>
+                <button onclick="printReport('marks')" class="inline-flex items-center justify-center bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800 active:bg-gray-900 text-sm">
+                    Print Marks
                 </button>
             </div>
         </div>
@@ -312,6 +315,30 @@ function showTab(tabName) {
     const activeTab = document.getElementById(tabName + '-tab');
     activeTab.classList.remove('border-transparent', 'text-gray-500');
     activeTab.classList.add('border-black', 'text-black');
+}
+
+// Print only the requested section and restore previous tab after printing
+function printReport(which) {
+    const attendance = document.getElementById('attendance-content');
+    const marks = document.getElementById('marks-content');
+    const wasAttendanceHidden = attendance.classList.contains('hidden');
+    const wasMarksHidden = marks.classList.contains('hidden');
+
+    if (which === 'attendance') {
+        attendance.classList.remove('hidden');
+        marks.classList.add('hidden');
+    } else {
+        marks.classList.remove('hidden');
+        attendance.classList.add('hidden');
+    }
+
+    // Use print after layout updates
+    setTimeout(() => {
+        window.print();
+        // Restore previous states
+        if (wasAttendanceHidden) attendance.classList.add('hidden'); else attendance.classList.remove('hidden');
+        if (wasMarksHidden) marks.classList.add('hidden'); else marks.classList.remove('hidden');
+    }, 0);
 }
 
 // Search functionality for attendance cards
@@ -363,8 +390,13 @@ document.addEventListener('click', function(event) {
 @media print {
     nav, .no-print, .tab-button { display: none !important; }
     body { background: white !important; }
-    .tab-content { display: block !important; }
-    .hidden { display: block !important; }
+    /* Print ONLY the currently visible section */
+    .hidden { display: none !important; }
+    .tab-content { display: block; }
+    /* Prefer desktop tables in print */
+    .sm\:hidden { display: none !important; }
+    .sm\:block { display: block !important; }
+    .overflow-x-auto { overflow: visible !important; }
 }
 </style>
 {% endblock %}

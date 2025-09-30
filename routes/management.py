@@ -469,8 +469,8 @@ def export_lecturer_credentials():
         from openpyxl.styles import Font, PatternFill
         from io import BytesIO
         
-        # Get all active lecturers with their credentials
-        lecturers = Lecturer.query.filter_by(is_active=True).all()
+        # Get all active lecturers with their credentials, sorted by lecturer_id then name
+        lecturers = Lecturer.query.filter_by(is_active=True).order_by(Lecturer.lecturer_id.asc(), Lecturer.name.asc()).all()
         
         # Create workbook and worksheet
         wb = openpyxl.Workbook()
@@ -490,7 +490,7 @@ def export_lecturer_credentials():
             ws.cell(row=row, column=2, value=lecturer.name)
             ws.cell(row=row, column=3, value=lecturer.username)
             ws.cell(row=row, column=4, value=lecturer.get_decrypted_password() or 'N/A')
-            assigned_subjects = [subject.name for subject in lecturer.get_assigned_subjects()]
+            assigned_subjects = sorted([subject.name for subject in lecturer.get_assigned_subjects()], key=lambda s: s.upper())
             ws.cell(row=row, column=5, value=', '.join(assigned_subjects) if assigned_subjects else 'No subjects assigned')
             ws.cell(row=row, column=6, value=lecturer.created_at.strftime('%Y-%m-%d') if lecturer.created_at else '')
         

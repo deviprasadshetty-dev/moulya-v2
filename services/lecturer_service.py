@@ -14,6 +14,7 @@ from utils.db_helpers import safe_add_and_commit, safe_update_and_commit
 from datetime import datetime, date
 from sqlalchemy import extract, func
 from sqlalchemy import and_, extract, func
+from utils.sorting_helpers import SortingHelpers
 
 class LecturerService:
     """Lecturer service class"""
@@ -80,13 +81,13 @@ class LecturerService:
             if not subject:
                 return []
             
-            # Return students ordered by roll number ascending
-            enrollments = StudentEnrollment.query\
-                .filter_by(subject_id=subject_id, is_active=True)\
-                .join(Student, Student.id == StudentEnrollment.student_id)\
-                .order_by(Student.roll_number.asc())\
-                .all()
-            return [e.student for e in enrollments]
+            # Fetch enrolled students and sort using numeric-aware helper (roll, then name)
+            enrollments = (StudentEnrollment.query
+                .filter_by(subject_id=subject_id, is_active=True)
+                .join(Student, Student.id == StudentEnrollment.student_id)
+                .all())
+            students = [e.student for e in enrollments]
+            return SortingHelpers.sort_students(students)
         except Exception as e:
             return []
     
@@ -418,7 +419,8 @@ class LecturerService:
             if not subject:
                 return None, "Subject not found"
             
-            enrolled_students = subject.get_enrolled_students()
+            # Ensure enrolled students are consistently sorted
+            enrolled_students = SortingHelpers.sort_students(subject.get_enrolled_students())
             report_data = []
             
             for student in enrolled_students:

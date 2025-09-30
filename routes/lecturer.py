@@ -50,10 +50,11 @@ def subject_students(subject_id):
         
         # Get all students for enrollment - only those from the same course as the subject
         # Sort by roll number (and name as tiebreaker) for consistent ordering in UI
-        all_students = (Student.query
+        from utils.sorting_helpers import SortingHelpers
+        all_students_unsorted = (Student.query
             .filter_by(is_active=True, course_id=subject.course_id)
-            .order_by(Student.roll_number.asc(), Student.name.asc())
             .all())
+        all_students = SortingHelpers.sort_students(all_students_unsorted)
         
         return render_template('lecturer/subject_students.html', 
                              subject=subject, 

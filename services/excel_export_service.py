@@ -128,7 +128,12 @@ class ExcelExportService:
             row += 1
 
             marks_row_count = 0
-            for subject in report_data.get('subjects', []):
+            # Sort subjects by name/code ascending for consistency
+            subjects_sorted_for_marks = sorted(
+                report_data.get('subjects', []),
+                key=lambda s: ((s.get('subject_name') or '').upper(), (s.get('subject_code') or '').upper())
+            )
+            for subject in subjects_sorted_for_marks:
                 for mark in subject.get('marks', []):
                     ws.cell(row=row, column=1, value=subject.get('subject_name'))
                     ws.cell(row=row, column=2, value=subject.get('subject_code'))
@@ -155,7 +160,11 @@ class ExcelExportService:
             row += 1
 
             att_row_count = 0
-            for subject in report_data.get('subjects', []):
+            subjects_sorted_for_att = sorted(
+                report_data.get('subjects', []),
+                key=lambda s: ((s.get('subject_name') or '').upper(), (s.get('subject_code') or '').upper())
+            )
+            for subject in subjects_sorted_for_att:
                 attendance = subject.get('attendance', {})
                 ws.cell(row=row, column=1, value=subject.get('subject_name'))
                 ws.cell(row=row, column=2, value=subject.get('subject_code'))
@@ -241,7 +250,12 @@ class ExcelExportService:
             ExcelExportService.style_header_row(ws, base + 7, headers)
             
             row = base + 8
-            for student_data in report_data['student_marks']:
+            # Sort by roll number then name
+            student_marks_sorted = sorted(
+                report_data['student_marks'],
+                key=lambda sm: ((sm.get('roll_number') or sm.get('student', {}).roll_number if isinstance(sm.get('student'), object) else '') or '').upper()
+            )
+            for student_data in student_marks_sorted:
                 student = student_data['student']
                 for mark in student_data['marks']:
                     ws.cell(row=row, column=1, value=student.roll_number)
@@ -320,7 +334,12 @@ class ExcelExportService:
             ExcelExportService.style_header_row(ws, base2 + 6, headers)
             
             row = base2 + 7
-            for student in report_data['student_attendance']:
+            # Ensure ascending by roll then name
+            sa_sorted = sorted(
+                report_data['student_attendance'],
+                key=lambda s: ((s.get('roll_number') or '').upper(), (s.get('student_name') or '').upper())
+            )
+            for student in sa_sorted:
                 ws.cell(row=row, column=1, value=student['roll_number'])
                 ws.cell(row=row, column=2, value=student['student_name'])
                 ExcelExportService.set_number(ws.cell(row=row, column=3), student['total_classes'], align_right=True)
@@ -366,7 +385,12 @@ class ExcelExportService:
             ExcelExportService.style_header_row(ws, 7, headers)
             
             row = 8
-            for subject in report_data['subjects']:
+            # Sort subjects for overview export
+            subjects_sorted = sorted(
+                report_data['subjects'],
+                key=lambda s: ((s.get('subject_code') or '').upper(), (s.get('subject_name') or '').upper())
+            )
+            for subject in subjects_sorted:
                 ws.cell(row=row, column=1, value=subject['subject_code'])
                 ws.cell(row=row, column=2, value=subject['subject_name'])
                 ws.cell(row=row, column=3, value=subject['year'])

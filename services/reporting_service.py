@@ -128,7 +128,7 @@ class ReportingService:
             subjects = Subject.query.join(StudentEnrollment).filter(
                 StudentEnrollment.student_id == student_id,
                 StudentEnrollment.is_active == True
-            ).all()
+            ).order_by(Subject.name.asc(), Subject.code.asc()).all()
             
             course_display, section = ReportingService._parse_course_and_section(student.course.name if student.course else None)
 
@@ -302,6 +302,12 @@ class ReportingService:
             except Exception:
                 lecturers_list = []
 
+            # Sort student buckets by roll number then name (ascending)
+            sorted_student_values = sorted(
+                student_marks.values(),
+                key=lambda x: ((x.get('roll_number') or '').upper(), (x.get('student_name') or '').upper())
+            )
+
             report = {
                 'subject': {
                     'id': subject.id,
@@ -316,7 +322,7 @@ class ReportingService:
                 },
                 'assessment_type': assessment_type_display,
                 'statistics': statistics,
-                'student_marks': list(student_marks.values())
+                'student_marks': sorted_student_values
             }
             
             return report
@@ -344,7 +350,7 @@ class ReportingService:
             students = Student.query.join(StudentEnrollment).filter(
                 StudentEnrollment.subject_id == subject_id,
                 StudentEnrollment.is_active == True
-            ).all()
+            ).order_by(Student.roll_number.asc(), Student.name.asc()).all()
             
             student_attendance = []
             total_classes_conducted = 0
@@ -432,6 +438,12 @@ class ReportingService:
             except Exception:
                 lecturers_list = []
 
+            # Ensure deterministic ascending order by roll then name
+            student_attendance_sorted = sorted(
+                student_attendance,
+                key=lambda s: ((s.get('roll_number') or '').upper(), (s.get('student_name') or '').upper())
+            )
+
             report = {
                 'subject': {
                     'id': subject.id,
@@ -447,7 +459,7 @@ class ReportingService:
                 'month': month_name,
                 'year': year,
                 'statistics': statistics,
-                'student_attendance': student_attendance
+                'student_attendance': student_attendance_sorted
             }
             
             return report
@@ -465,10 +477,13 @@ class ReportingService:
                 return None
             
             # Get all subjects in this course
-            subjects = Subject.query.filter_by(course_id=course_id, is_active=True).all()
+            subjects = (Subject.query
+                .filter_by(course_id=course_id, is_active=True)
+                .order_by(Subject.code.asc(), Subject.name.asc())
+                .all())
             
             # Get all students in this course
-            students = Student.query.filter_by(course_id=course_id, is_active=True).all()
+            students = Student.query.filter_by(course_id=course_id, is_active=True).order_by(Student.roll_number.asc(), Student.name.asc()).all()
             
             subject_reports = []
             for subject in subjects:
@@ -501,6 +516,12 @@ class ReportingService:
                 
                 subject_reports.append(subject_data)
             
+            # Sort subjects in the overview report (by code, then name)
+            subject_reports_sorted = sorted(
+                subject_reports,
+                key=lambda s: ((s.get('subject_code') or '').upper(), (s.get('subject_name') or '').upper())
+            )
+
             report = {
                 'course': {
                     'id': course.id,
@@ -511,7 +532,7 @@ class ReportingService:
                 },
                 'total_students': len(students),
                 'total_subjects': len(subjects),
-                'subjects': subject_reports
+                'subjects': subject_reports_sorted
             }
             
             return report
@@ -524,7 +545,7 @@ class ReportingService:
     def get_subjects_for_reporting():
         """Get all subjects available for reporting"""
         try:
-            subjects = Subject.query.filter_by(is_active=True).all()
+            subjects = Subject.query.filter_by(is_active=True).order_by(Subject.name.asc(), Subject.code.asc()).all()
             return [{
                 'id': subject.id,
                 'name': subject.name,
@@ -542,7 +563,7 @@ class ReportingService:
     def get_courses_for_reporting():
         """Get all courses available for reporting"""
         try:
-            courses = Course.query.filter_by(is_active=True).all()
+            courses = Course.query.filter_by(is_active=True).order_by(Course.name.asc(), Course.code.asc()).all()
             return [{
                 'id': course.id,
                 'name': course.name,
@@ -562,7 +583,7 @@ class ReportingService:
             if course_id:
                 query = query.filter_by(course_id=course_id)
             
-            students = query.all()
+            students = query.order_by(Student.roll_number.asc(), Student.name.asc()).all()
             return [{
                 'id': student.id,
                 'name': student.name,
