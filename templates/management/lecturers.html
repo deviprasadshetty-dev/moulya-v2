@@ -284,8 +284,8 @@
     try { subjects = JSON.parse(holder.dataset.subjects || '[]'); } catch (_) { subjects = []; }
     const listHtml = subjects.length ? subjects.map(s => `
       <div class="flex items-center justify-between px-3 py-2 border-b last:border-b-0">
-        <div class="text-sm"><span class="font-medium">${s.name}</span> <span class="text-gray-500">(${s.code})</span></div>
-        <button type="button" class="unassign-btn text-red-600 hover:text-red-800 text-sm" data-sid="${s.id}" data-sname="${s.name} (${s.code})">Remove</button>
+        <div class="text-sm"><span class="font-medium">${s.name}</span> <span class="text-gray-500">(${s.code}) - ${s.course_name || 'N/A'}</span></div>
+        <button type="button" class="unassign-btn text-red-600 hover:text-red-800 text-sm" data-sid="${s.id}" data-sname="${s.name} (${s.code}) - ${s.course_name || 'N/A'}">Remove</button>
       </div>
     `).join('') : '<div class="px-3 py-2 text-sm text-gray-500">No subjects assigned</div>';
 
@@ -788,7 +788,7 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {% set assigned_subjects = lecturer.get_assigned_subjects() %}
                             {% if assigned_subjects %}
-                                <div id="assigned-subjects-{{ lecturer.id }}" class="space-y-1" data-subjects='[{% for s in assigned_subjects %}{"id":{{ s.id }},"name":"{{ s.name }}","code":"{{ s.code }}"}{% if not loop.last %},{% endif %}{% endfor %}]'>
+                                <div id="assigned-subjects-{{ lecturer.id }}" class="space-y-1" data-subjects='[{% for s in assigned_subjects %}{"id":{{ s.id }},"name":"{{ s.name }}","code":"{{ s.code }}","course_name":"{{ s.course.name if s.course else '' }}"}{% if not loop.last %},{% endif %}{% endfor %}]'>
                                     {% for subject in assigned_subjects[:2] %}
                                     <div class="inline-flex items-center text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
                                         {{ subject.name }} ({{ subject.code }})
