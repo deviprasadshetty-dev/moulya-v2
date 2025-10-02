@@ -546,12 +546,24 @@ def subject_reports(subject_id):
         attendance_report, att_message = LecturerService.generate_attendance_report(subject_id, lecturer_id)
         
         # Generate marks report
-        marks_report, marks_message = LecturerService.generate_marks_report(subject_id, lecturer_id)
+        marks_report_result, marks_message = LecturerService.generate_marks_report(subject_id, lecturer_id)
+        
+        # Extract marks report data and metadata
+        marks_report = None
+        has_internal1 = False
+        has_internal2 = False
+        
+        if marks_report_result:
+            marks_report = marks_report_result.get('report_data', [])
+            has_internal1 = marks_report_result.get('has_internal1', False)
+            has_internal2 = marks_report_result.get('has_internal2', False)
         
         return render_template('lecturer/reports.html', 
                              subject=subject,
                              attendance_report=attendance_report,
-                             marks_report=marks_report)
+                             marks_report=marks_report,
+                             has_internal1=has_internal1,
+                             has_internal2=has_internal2)
     except Exception as e:
         flash(f'Error loading reports: {str(e)}', 'error')
         return redirect(url_for('lecturer.subjects'))
@@ -563,7 +575,8 @@ def export_subject_marks_report_pdf(subject_id):
     try:
         lecturer_id = session.get('user_id')
         subject = Subject.query.get_or_404(subject_id)
-        marks_report, _ = LecturerService.generate_marks_report(subject_id, lecturer_id)
+        marks_report_result, _ = LecturerService.generate_marks_report(subject_id, lecturer_id)
+        marks_report = marks_report_result.get('report_data', []) if marks_report_result else []
         pdf_bytes = ReportingService.generate_subject_marks_report_pdf(subject, marks_report)
         from flask import make_response
         response = make_response(pdf_bytes)
@@ -597,7 +610,8 @@ def export_subject_marks_report_excel(subject_id):
     try:
         lecturer_id = session.get('user_id')
         subject = Subject.query.get_or_404(subject_id)
-        marks_report, _ = LecturerService.generate_marks_report(subject_id, lecturer_id)
+        marks_report_result, _ = LecturerService.generate_marks_report(subject_id, lecturer_id)
+        marks_report = marks_report_result.get('report_data', []) if marks_report_result else []
         excel_bytes = ReportingService.generate_subject_marks_report_excel(subject, marks_report)
         from flask import make_response
         response = make_response(excel_bytes)
@@ -670,8 +684,9 @@ def marks_deficiency_report():
         
         deficiency_data = []
         for subject in subjects:
-            report, message = LecturerService.generate_marks_report(subject.id, lecturer_id)
-            if report:
+            report_result, message = LecturerService.generate_marks_report(subject.id, lecturer_id)
+            if report_result:
+                report = report_result.get('report_data', [])
                 # Filter students based on custom threshold
                 deficient_students = [r for r in report if r['overall_percentage'] < threshold]
                 if deficient_students:

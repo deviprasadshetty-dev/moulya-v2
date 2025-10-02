@@ -793,15 +793,48 @@ class ReportingService:
         ]))
         elements.extend([Spacer(1, 10), Paragraph('Marks Report', styles['Heading2']), Spacer(1, 6), subj_table, Spacer(1, 10)])
 
-        # Marks table (Student | Roll | Overall % | Status)
-        rows = [['Student', 'Roll Number', 'Overall %', 'Status']]
+        # Check if Internal assessments are available
+        has_internal1 = any(record.get('internal1_marks') for record in marks_report or [])
+        has_internal2 = any(record.get('internal2_marks') for record in marks_report or [])
+        
+        # Build table headers dynamically
+        headers = ['Student', 'Roll Number']
+        if has_internal1:
+            headers.append('Internal 1')
+        if has_internal2:
+            headers.append('Internal 2')
+        headers.extend(['Overall %', 'Status'])
+        
+        # Marks table
+        rows = [headers]
         for record in marks_report or []:
             student = record['student']
             overall = record.get('overall_percentage') or 0
             status = 'Good' if overall >= 50 else 'Deficient'
-            rows.append([student.name, student.roll_number, f"{overall}%", status])
+            
+            row = [student.name, student.roll_number]
+            
+            if has_internal1:
+                internal1 = record.get('internal1_marks')
+                if internal1:
+                    row.append(f"{internal1['obtained']}/{internal1['max']}")
+                else:
+                    row.append('-')
+            
+            if has_internal2:
+                internal2 = record.get('internal2_marks')
+                if internal2:
+                    row.append(f"{internal2['obtained']}/{internal2['max']}")
+                else:
+                    row.append('-')
+            
+            row.extend([f"{overall}%", status])
+            rows.append(row)
+            
         if len(rows) == 1:
-            rows.append(['No data', '', '', ''])
+            no_data_row = ['No data'] + [''] * (len(headers) - 1)
+            rows.append(no_data_row)
+            
         # Wrap text in table data
         rows_wrapped = ReportingService._wrap_table_data(rows, skip_header=True, header_text_white=True)
 
@@ -963,6 +996,18 @@ class ReportingService:
         else:
             ws['A6'] = 'Faculty'
             ws['B6'] = faculty_name
+        # Check if Internal assessments are available
+        has_internal1 = any(record.get('internal1_marks') for record in marks_report or [])
+        has_internal2 = any(record.get('internal2_marks') for record in marks_report or [])
+        
+        # Build table headers dynamically
+        headers = ['Student', 'Roll Number']
+        if has_internal1:
+            headers.append('Internal 1')
+        if has_internal2:
+            headers.append('Internal 2')
+        headers.extend(['Overall %', 'Status'])
+        
         # Determine where to place spacer row and headers
         last_info_row = 7 if has_section else 6
         spacer_row = last_info_row + 1
@@ -970,12 +1015,11 @@ class ReportingService:
         data_start_row = header_row + 1
 
         # Spacer row above the table
-        ws.merge_cells(start_row=spacer_row, start_column=1, end_row=spacer_row, end_column=4)
+        ws.merge_cells(start_row=spacer_row, start_column=1, end_row=spacer_row, end_column=len(headers))
         spacer_cell = ws.cell(row=spacer_row, column=1, value='')
         spacer_cell.fill = PatternFill(start_color='F5F5F5', end_color='F5F5F5', fill_type='solid')
 
         # Table headers
-        headers = ['Student', 'Roll Number', 'Overall %', 'Status']
         for col, header in enumerate(headers, 1):
             cell = ws.cell(row=header_row, column=col, value=header)
             cell.font = Font(bold=True, color='FFFFFF')
@@ -989,10 +1033,31 @@ class ReportingService:
             overall = record.get('overall_percentage') or 0
             status = 'Good' if overall >= 50 else 'Deficient'
             
-            ws.cell(row=row, column=1, value=student.name)
-            ws.cell(row=row, column=2, value=student.roll_number)
-            ws.cell(row=row, column=3, value=f"{overall}%")
-            ws.cell(row=row, column=4, value=status)
+            col = 1
+            ws.cell(row=row, column=col, value=student.name)
+            col += 1
+            ws.cell(row=row, column=col, value=student.roll_number)
+            col += 1
+            
+            if has_internal1:
+                internal1 = record.get('internal1_marks')
+                if internal1:
+                    ws.cell(row=row, column=col, value=f"{internal1['obtained']}/{internal1['max']}")
+                else:
+                    ws.cell(row=row, column=col, value='-')
+                col += 1
+            
+            if has_internal2:
+                internal2 = record.get('internal2_marks')
+                if internal2:
+                    ws.cell(row=row, column=col, value=f"{internal2['obtained']}/{internal2['max']}")
+                else:
+                    ws.cell(row=row, column=col, value='-')
+                col += 1
+            
+            ws.cell(row=row, column=col, value=f"{overall}%")
+            col += 1
+            ws.cell(row=row, column=col, value=status)
             row += 1
         
         if not marks_report:

@@ -419,6 +419,17 @@ class LecturerService:
             if not subject:
                 return None, "Subject not found"
             
+            # Check if Internal 1 and Internal 2 marks exist for this subject
+            has_internal1 = StudentMarks.query.filter_by(
+                subject_id=subject_id,
+                assessment_type='internal1'
+            ).first() is not None
+            
+            has_internal2 = StudentMarks.query.filter_by(
+                subject_id=subject_id,
+                assessment_type='internal2'
+            ).first() is not None
+            
             # Ensure enrolled students are consistently sorted
             enrolled_students = SortingHelpers.sort_students(subject.get_enrolled_students())
             report_data = []
@@ -427,14 +438,53 @@ class LecturerService:
                 marks_summary = student.get_subject_marks_summary(subject_id)
                 overall_percentage = StudentMarks.get_student_overall_percentage(student.id, subject_id)
                 
+                # Get individual assessment marks for display
+                internal1_marks = None
+                internal2_marks = None
+                
+                if has_internal1:
+                    internal1_mark = StudentMarks.query.filter_by(
+                        student_id=student.id,
+                        subject_id=subject_id,
+                        assessment_type='internal1'
+                    ).first()
+                    if internal1_mark:
+                        internal1_marks = {
+                            'obtained': internal1_mark.marks_obtained,
+                            'max': internal1_mark.max_marks,
+                            'percentage': internal1_mark.percentage
+                        }
+                
+                if has_internal2:
+                    internal2_mark = StudentMarks.query.filter_by(
+                        student_id=student.id,
+                        subject_id=subject_id,
+                        assessment_type='internal2'
+                    ).first()
+                    if internal2_mark:
+                        internal2_marks = {
+                            'obtained': internal2_mark.marks_obtained,
+                            'max': internal2_mark.max_marks,
+                            'percentage': internal2_mark.percentage
+                        }
+                
                 report_data.append({
                     'student': student,
                     'marks_summary': marks_summary,
                     'overall_percentage': overall_percentage,
-                    'has_deficiency': overall_percentage < 50
+                    'has_deficiency': overall_percentage < 50,
+                    'internal1_marks': internal1_marks,
+                    'internal2_marks': internal2_marks
                 })
             
-            return report_data, "Report generated successfully"
+            # Include metadata about which assessments are available
+            report_metadata = {
+                'has_internal1': has_internal1,
+                'has_internal2': has_internal2,
+                'report_data': report_data
+            }
+            
+            return report_metadata, "Report generated successfully"
             
         except Exception as e:
             return None, f"Error generating report: {str(e)}"
