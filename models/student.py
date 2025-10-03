@@ -5,6 +5,7 @@ Student and StudentEnrollment models
 
 from database import db
 from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
 
 class Student(db.Model):
     """Student model"""
@@ -13,6 +14,9 @@ class Student(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     roll_number = db.Column(db.String(20), unique=True, nullable=False, index=True)
     name = db.Column(db.String(100), nullable=False)
+    username = db.Column(db.String(80), unique=True, nullable=False, index=True)
+    password_hash = db.Column(db.String(120), nullable=False)
+    password_encrypted = db.Column(db.Text, nullable=True)  # Encrypted password for management access
     course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
     academic_year = db.Column(db.Integer, nullable=False)
     current_semester = db.Column(db.Integer, default=1)
@@ -35,11 +39,12 @@ class Student(db.Model):
     
     def get_current_subjects(self):
         """Get subjects for current semester"""
+        from models.academic import Subject
         return [enrollment.subject for enrollment in self.enrollments.filter_by(
             is_active=True
-        ).join('subject').filter_by(
-            year=self.academic_year,
-            semester=self.current_semester
+        ).join(Subject, StudentEnrollment.subject_id == Subject.id).filter(
+            Subject.year == self.academic_year,
+            Subject.semester == self.current_semester
         )]
     
     def is_enrolled_in_subject(self, subject_id):
@@ -134,6 +139,38 @@ class Student(db.Model):
     
     def __repr__(self):
         return f'<Student {self.roll_number}: {self.name}>'
+
+    def set_password(self, password):
+        """Set password hash and encrypted password for management access"""
+        from utils.encryption import password_encryptor
+        self.password_hash = generate_password_hash(password)
+        self.password_encrypted = password_encryptor.encrypt_password(password)
+    
+    def check_password(self, password):
+        """Check password against hash"""
+        return check_password_hash(self.password_hash, password)
+    
+    def get_decrypted_password(self):
+        """Get decrypted password for management access"""
+        from utils.encryption import password_encryptor
+        if self.password_encrypted:
+            return password_encryptor.decrypt_password(self.password_encrypted)
+        return None
+    
+    @staticmethod
+    def generate_username(roll_number):
+        """Generate username from roll number"""
+        return roll_number.lower()
+    
+    @staticmethod
+    def generate_password():
+        """Generate a random password for new students"""
+        import random
+        import string
+        
+        # Generate 8-character password with letters and numbers
+        chars = string.ascii_letters + string.digits
+        return ''.join(random.choice(chars) for _ in range(8))
 
 class StudentEnrollment(db.Model):
     """Student enrollment in subjects"""

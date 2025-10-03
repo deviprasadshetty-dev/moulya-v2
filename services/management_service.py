@@ -499,7 +499,17 @@ class ManagementService:
                 email=student_data.get('email')
             )
             
+            # Generate username and password
+            username = Student.generate_username(student.roll_number)
+            password = Student.generate_password()
+            student.username = username
+            student.set_password(password)
+            
             success, message = safe_add_and_commit(student)
+            
+            # Return success with generated credentials
+            if success:
+                return True, f"Student added successfully. Username: {username}, Password: {password}"
             return success, message
                 
         except Exception as e:
@@ -740,8 +750,14 @@ class ManagementService:
                             current_semester=semester or 1,
                             email=email
                         )
+                        
+                        # Generate username and password for new student
+                        username = Student.generate_username(student.roll_number)
+                        password = Student.generate_password()
+                        student.username = username
+                        student.set_password(password)
 
-                        students_to_create.append(student)
+                        students_to_create.append((student, password))
 
                 except Exception as e:
                     errors.append(f"Row {row_num}: Error processing data - {str(e)}")
@@ -753,16 +769,23 @@ class ManagementService:
                     
                     # Add new students
                     if students_to_create:
-                        success, message = bulk_insert(students_to_create)
-                        if not success:
-                            return False, message, errors
+                        students_added = []
+                        passwords_generated = []
+                        for student, password in students_to_create:
+                            success, message = safe_add_and_commit(student)
+                            if success:
+                                students_added.append(student)
+                                passwords_generated.append((student.roll_number, password))
+                            else:
+                                errors.append(f"Failed to add student {student.roll_number}: {message}")
+                        
+                        if students_added:
+                            response_msg.append(f"added {len(students_added)}")
                     
-                    response_msg = []
-                    if students_to_create:
-                        response_msg.append(f"added {len(students_to_create)}")
-                    if updates_applied:
-                        response_msg.append(f"updated {updates_applied}")
-                    return True, f"Successfully {', '.join(response_msg)} student(s)", errors
+                    response_msg = ', '.join(response_msg)
+                    # Return credentials for display
+                    credentials = [{'roll_number': roll_num, 'password': pwd} for roll_num, pwd in passwords_generated]
+                    return True, f"Successfully {response_msg} student(s)", errors, credentials
                 except Exception as e:
                     db.session.rollback()
                     return False, f"Database error: {str(e)}", errors

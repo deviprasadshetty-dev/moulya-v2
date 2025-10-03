@@ -60,6 +60,29 @@ class AuthService:
             return False, None, f"Authentication error: {str(e)}"
     
     @staticmethod
+    def authenticate_student(username, password):
+        """Authenticate student user"""
+        try:
+            # Case-insensitive username match
+            from sqlalchemy import func
+            from models.student import Student
+            normalized = (username or '').strip()
+            user = (
+                Student.query
+                .filter(func.lower(Student.username) == func.lower(normalized))
+                .filter_by(is_active=True)
+                .first()
+            )
+            
+            if user and user.check_password(password):
+                return True, user, "Login successful"
+            
+            return False, None, "Invalid username or password"
+        
+        except Exception as e:
+            return False, None, f"Authentication error: {str(e)}"
+    
+    @staticmethod
     def generate_lecturer_credentials(name, lecturer_id, manual_username=None, manual_password=None):
         """Generate username and password for lecturer"""
         try:
@@ -114,6 +137,9 @@ class AuthService:
                 user = Management.query.get(user_id)
             elif user_type == 'lecturer':
                 user = Lecturer.query.get(user_id)
+            elif user_type == 'student':
+                from models.student import Student
+                user = Student.query.get(user_id)
             else:
                 return False, "Invalid user type"
             
@@ -227,6 +253,9 @@ class AuthService:
                 user = Management.query.get(user_id)
             elif user_type == 'lecturer':
                 user = Lecturer.query.get(user_id)
+            elif user_type == 'student':
+                from models.student import Student
+                user = Student.query.get(user_id)
             else:
                 return None, "Invalid user type"
             
@@ -269,6 +298,11 @@ class SessionManager:
     def is_lecturer(session):
         """Check if current user is lecturer"""
         return session.get('user_type') == 'lecturer'
+    
+    @staticmethod
+    def is_student(session):
+        """Check if current user is student"""
+        return session.get('user_type') == 'student'
     
     @staticmethod
     def get_current_user_id(session):

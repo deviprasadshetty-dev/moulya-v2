@@ -27,10 +27,12 @@ def create_app():
     from routes.auth import auth_bp
     from routes.management import management_bp
     from routes.lecturer import lecturer_bp
+    from routes.student import student_bp
     
     app.register_blueprint(auth_bp)
     app.register_blueprint(management_bp, url_prefix='/management')
     app.register_blueprint(lecturer_bp, url_prefix='/lecturer')
+    app.register_blueprint(student_bp, url_prefix='/student')
     
     # Initialize database
     init_db(app)

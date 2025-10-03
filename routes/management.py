@@ -397,6 +397,22 @@ def get_lecturer_password(lecturer_id):
     except Exception as e:
         return jsonify({'success': False, 'message': f'Error retrieving password: {str(e)}'})
 
+@management_bp.route('/students/<int:student_id>/password')
+@login_required('management')
+def get_student_password(student_id):
+    """Get student's decrypted password for management"""
+    try:
+        student = Student.query.get_or_404(student_id)
+        password = student.get_decrypted_password()
+        
+        if password:
+            return jsonify({'success': True, 'password': password})
+        else:
+            return jsonify({'success': False, 'message': 'Password not available'})
+            
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error retrieving password: {str(e)}'})
+
 @management_bp.route('/lecturers/<int:lecturer_id>/assign-subjects', methods=['POST'])
 @login_required('management')
 def assign_subjects_to_lecturer(lecturer_id):
@@ -523,6 +539,80 @@ def export_lecturer_credentials():
         flash(f'Error exporting credentials: {str(e)}', 'error')
         return redirect(url_for('management.lecturers'))
 
+@management_bp.route('/students/credentials/export')
+@login_required('management')
+def export_student_credentials():
+    """Export student credentials to Excel"""
+    try:
+        from flask import make_response
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill
+        from io import BytesIO
+        
+        course_id = request.args.get('course_id', type=int)
+        
+        # Get active students, optionally filtered by course, sorted by roll_number then name
+        query = Student.query.filter_by(is_active=True)
+        if course_id:
+            query = query.filter_by(course_id=course_id)
+        
+        students = query.order_by(Student.roll_number.asc(), Student.name.asc()).all()
+        
+        # Create workbook and worksheet
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Student Credentials"
+        
+        # Headers - simplified as requested: Name, Username, Password
+        headers = ['Name', 'Username', 'Password']
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = Font(bold=True)
+            cell.fill = PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
+        
+        # Data rows
+        for row, student in enumerate(students, 2):
+            ws.cell(row=row, column=1, value=student.name)
+            ws.cell(row=row, column=2, value=student.username)
+            ws.cell(row=row, column=3, value=student.get_decrypted_password() or 'N/A')
+        
+        # Auto-adjust column widths
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws.column_dimensions[column_letter].width = adjusted_width
+        
+        # Save to BytesIO
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        # Create response
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        
+        # Set filename based on whether it's filtered by course
+        if course_id:
+            course = Course.query.get(course_id)
+            filename = f'student_credentials_{course.code if course else "course"}.xlsx'
+        else:
+            filename = 'student_credentials.xlsx'
+        
+        response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+        
+        return response
+        
+    except Exception as e:
+        flash(f'Error exporting credentials: {str(e)}', 'error')
+        return redirect(url_for('management.students'))
+
 @management_bp.route('/students/add', methods=['POST'])
 @login_required('management')
 def add_student():
@@ -583,14 +673,19 @@ def bulk_add_students():
             flash(error_msg, 'error')
             return redirect(url_for('management.students'))
         
-        success, message, errors = ManagementService.bulk_add_students(file.read())
+        success, message, errors, credentials = ManagementService.bulk_add_students(file.read())
         
         # Handle AJAX requests
         if is_ajax_request():
-            return jsonify({'success': success, 'message': message, 'errors': errors})
+            return jsonify({'success': success, 'message': message, 'errors': errors, 'credentials': credentials})
         
         if success:
             flash(message, 'success')
+            if credentials:
+                creds_msg = "Generated credentials: " + ", ".join([f"{c['roll_number']}:{c['password']}" for c in credentials[:5]])
+                if len(credentials) > 5:
+                    creds_msg += f" (+{len(credentials)-5} more)"
+                flash(creds_msg, 'info')
             if errors:
                 flash(f'Some errors occurred: {"; ".join(errors[:5])}', 'warning')
         else:
