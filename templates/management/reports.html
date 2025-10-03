@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Reports Dashboard - Moulya College Management{% endblock %}
+{% block title %}Reports Dashboard - Academic Record Management System{% endblock %}
 
 {% block scripts %}
 {{ super() }}
@@ -67,9 +67,24 @@
             },
             
             generateStudentReport() {
+                // Allow typing a roll number or name directly without clicking dropdown
                 if (!this.selectedStudent) {
-                    Swal.fire('Error!', 'Please select a student', 'error');
-                    return;
+                    const input = (this.studentSearch || '').trim();
+                    if (input) {
+                        const lc = input.toLowerCase();
+                        const matches = this.allStudents.filter(s => 
+                            s.roll_number.toLowerCase() === lc ||
+                            s.name.toLowerCase() === lc ||
+                            s.roll_number.toLowerCase().includes(lc)
+                        );
+                        if (matches.length === 1) {
+                            this.selectedStudent = matches[0].id;
+                        }
+                    }
+                    if (!this.selectedStudent) {
+                        Swal.fire('Error!', 'Please select a student', 'error');
+                        return;
+                    }
                 }
                 window.open(`/management/reports/student/${this.selectedStudent}`, '_blank');
             },
@@ -171,10 +186,11 @@
                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm">
                             
                             <!-- Searchable Dropdown -->
-                            <div x-show="showStudentDropdown && filteredStudents.length > 0" 
+                            <div x-show="showStudentDropdown" 
                                  x-transition
                                  class="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm"
-                                 @click.away="showStudentDropdown = false">
+                                 @mousedown.away="showStudentDropdown = false" 
+                                 @keydown.escape.window="showStudentDropdown = false">
                                 <template x-for="student in filteredStudents" :key="student.id">
                                     <div @click="selectStudent(student)" 
                                          class="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-gray-100">
@@ -208,6 +224,10 @@
                             <button @click="selectedStudent && (window.location.href = `/management/reports/export/student/${selectedStudent}`)" 
                                     class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
                                 📥 Export Excel
+                            </button>
+                            <button @click="selectedStudent && (window.location.href = `/management/reports/export/student/${selectedStudent}/pdf`)" 
+                                    class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                🧾 Export PDF
                             </button>
                         </div>
                     </div>
@@ -259,6 +279,10 @@
                             <button @click="selectedSubject && (window.location.href = `/management/reports/export/class/marks/${selectedSubject}${selectedAssessmentType ? '?assessment_type=' + selectedAssessmentType : ''}`)" 
                                     class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
                                 📥 Export Excel
+                            </button>
+                            <button @click="selectedSubject && (window.location.href = `/management/reports/export/class/marks/${selectedSubject}${selectedAssessmentType ? '?assessment_type=' + selectedAssessmentType : ''}/pdf`)" 
+                                    class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                🧾 Export PDF
                             </button>
                         </div>
                     </div>
@@ -328,6 +352,10 @@
                                     class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
                                 📥 Export Excel
                             </button>
+                            <button @click="selectedSubject && (window.location.href = `/management/reports/export/class/attendance/${selectedSubject}/pdf?month=${selectedMonth}&year=${selectedYear}`)" 
+                                    class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                🧾 Export PDF
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -368,44 +396,17 @@
                                     class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
                                 📥 Export Excel
                             </button>
+                            <button @click="selectedCourse && (window.open(`/management/reports/export/course/${selectedCourse}/pdf`, '_blank'))" 
+                                    class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                🧾 Export PDF
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Quick Stats -->
-        <div class="mt-8 bg-white shadow rounded-lg">
-            <div class="px-4 py-5 sm:p-6">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">📊 Quick Statistics</h3>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div class="text-center">
-                        <div class="text-2xl font-bold text-gray-900">{{ courses|length if courses else 0 }}</div>
-                        <div class="text-sm text-gray-500">Active Courses</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-2xl font-bold text-gray-900">{{ subjects|length if subjects else 0 }}</div>
-                        <div class="text-sm text-gray-500">Active Subjects</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-2xl font-bold text-gray-900">
-                            {% set total_enrollments = 0 %}
-                            {% if subjects %}
-                                {% for subject in subjects %}
-                                    {% set total_enrollments = total_enrollments + (subject.enrolled_students_count or 0) %}
-                                {% endfor %}
-                            {% endif %}
-                            {{ total_enrollments }}
-                        </div>
-                        <div class="text-sm text-gray-500">Total Enrollments</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-2xl font-bold text-gray-900">4</div>
-                        <div class="text-sm text-gray-500">Report Types</div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        {# Quick Statistics removed as requested #}
     </div>
 </div>
 </div>

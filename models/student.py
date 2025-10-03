@@ -5,6 +5,7 @@ Student and StudentEnrollment models
 
 from database import db
 from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
 
 class Student(db.Model):
     """Student model"""
@@ -13,13 +14,16 @@ class Student(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     roll_number = db.Column(db.String(20), unique=True, nullable=False, index=True)
     name = db.Column(db.String(100), nullable=False)
+    username = db.Column(db.String(80), unique=True, nullable=False, index=True)
+    password_hash = db.Column(db.String(120), nullable=False)
+    password_encrypted = db.Column(db.Text, nullable=True)  # Encrypted password for management access
     course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
     academic_year = db.Column(db.Integer, nullable=False)
     current_semester = db.Column(db.Integer, default=1)
     email = db.Column(db.String(120), unique=True, nullable=True)
     phone = db.Column(db.String(15), nullable=True)
     address = db.Column(db.Text, nullable=True)
-    date_of_birth = db.Column(db.Date, nullable=True)
+    date_of_birth = db.Column(db.Date, nullable=False)
     admission_date = db.Column(db.Date, default=datetime.utcnow().date())
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
@@ -35,11 +39,12 @@ class Student(db.Model):
     
     def get_current_subjects(self):
         """Get subjects for current semester"""
+        from models.academic import Subject
         return [enrollment.subject for enrollment in self.enrollments.filter_by(
             is_active=True
-        ).join('subject').filter_by(
-            year=self.academic_year,
-            semester=self.current_semester
+        ).join(Subject, StudentEnrollment.subject_id == Subject.id).filter(
+            Subject.year == self.academic_year,
+            Subject.semester == self.current_semester
         )]
     
     def is_enrolled_in_subject(self, subject_id):
@@ -134,6 +139,36 @@ class Student(db.Model):
     
     def __repr__(self):
         return f'<Student {self.roll_number}: {self.name}>'
+
+    def set_password(self, date_of_birth):
+        """Set password hash and encrypted password for management access using DOB"""
+        password = Student.generate_password(date_of_birth)
+        from utils.encryption import password_encryptor
+        self.password_hash = generate_password_hash(password)
+        self.password_encrypted = password_encryptor.encrypt_password(password)
+    
+    def check_password(self, password):
+        """Check password against hash"""
+        return check_password_hash(self.password_hash, password)
+    
+    def get_decrypted_password(self):
+        """Get decrypted password for management access"""
+        from utils.encryption import password_encryptor
+        if self.password_encrypted:
+            return password_encryptor.decrypt_password(self.password_encrypted)
+        return None
+    
+    @staticmethod
+    def generate_username(roll_number):
+        """Generate username from roll number"""
+        return roll_number.lower()
+    
+    @staticmethod
+    def generate_password(date_of_birth):
+        """Generate password from date of birth in DDMMYYYY format"""
+        if not date_of_birth:
+            raise ValueError("Date of birth is required to generate password")
+        return date_of_birth.strftime('%d%m%Y')
 
 class StudentEnrollment(db.Model):
     """Student enrollment in subjects"""

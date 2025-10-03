@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ subject.name }} - Marks - Moulya College Management{% endblock %}
+{% block title %}{{ subject.name }} - Marks - Academic Record Management System{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50">
@@ -24,7 +24,7 @@
                 
                 <!-- Desktop menu -->
                 <div class="hidden md:flex items-center space-x-4">
-                    <span class="text-sm text-gray-700">{{ current_user.username }}</span>
+                    <span class="text-sm text-gray-700">{{ current_user.name or current_user.username }}</span>
                     <form method="POST" action="{{ url_for('auth.logout') }}" class="inline">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <button type="submit" class="text-sm text-gray-600 hover:text-black">Logout</button>
@@ -35,7 +35,7 @@
             <!-- Mobile menu -->
             <div id="mobile-menu" class="md:hidden hidden border-t border-gray-200 py-4">
                 <div class="space-y-2">
-                    <div class="text-sm text-gray-700 px-2">{{ current_user.username }}</div>
+                    <div class="text-sm text-gray-700 px-2">{{ current_user.name or current_user.username }}</div>
                     <form method="POST" action="{{ url_for('auth.logout') }}" class="px-2">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <button type="submit" class="w-full text-left py-2 text-sm text-gray-600 hover:text-black">Logout</button>
@@ -253,7 +253,7 @@
                                 <div class="text-gray-900">
                                     {% if student_marks.get('internal1') %}
                                     {{ student_marks['internal1'].marks_obtained }}/{{ student_marks['internal1'].max_marks }}
-                                    <span class="text-gray-500">({{ student_marks['internal1'].percentage }}%)</span>
+                                    <span class="text-gray-500">({{ "%.2f"|format(student_marks['internal1'].percentage) }}%)</span>
                                     {% else %}
                                     <span class="text-gray-400">Not recorded</span>
                                     {% endif %}
@@ -264,7 +264,7 @@
                                 <div class="text-gray-900">
                                     {% if student_marks.get('internal2') %}
                                     {{ student_marks['internal2'].marks_obtained }}/{{ student_marks['internal2'].max_marks }}
-                                    <span class="text-gray-500">({{ student_marks['internal2'].percentage }}%)</span>
+                                    <span class="text-gray-500">({{ "%.2f"|format(student_marks['internal2'].percentage) }}%)</span>
                                     {% else %}
                                     <span class="text-gray-400">Not recorded</span>
                                     {% endif %}
@@ -275,7 +275,7 @@
                                 <div class="text-gray-900">
                                     {% if student_marks.get('assignment') %}
                                     {{ student_marks['assignment'].marks_obtained }}/{{ student_marks['assignment'].max_marks }}
-                                    <span class="text-gray-500">({{ student_marks['assignment'].percentage }}%)</span>
+                                    <span class="text-gray-500">({{ "%.2f"|format(student_marks['assignment'].percentage) }}%)</span>
                                     {% else %}
                                     <span class="text-gray-400">Not recorded</span>
                                     {% endif %}
@@ -286,7 +286,7 @@
                                 <div class="text-gray-900">
                                     {% if student_marks.get('project') %}
                                     {{ student_marks['project'].marks_obtained }}/{{ student_marks['project'].max_marks }}
-                                    <span class="text-gray-500">({{ student_marks['project'].percentage }}%)</span>
+                                    <span class="text-gray-500">({{ "%.2f"|format(student_marks['project'].percentage) }}%)</span>
                                     {% else %}
                                     <span class="text-gray-400">Not recorded</span>
                                     {% endif %}
@@ -320,38 +320,46 @@
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{{ student.roll_number }}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                                 {% if student_marks.get('internal1') %}
-                                {{ student_marks['internal1'].marks_obtained }}/{{ student_marks['internal1'].max_marks }}
-                                <span class="text-xs text-gray-500">({{ student_marks['internal1'].percentage }}%)</span>
+                                {% set obtained = student_marks['internal1'].marks_obtained %}
+                                {% set max_val = student_marks['internal1'].max_marks %}
+                                {% if obtained is number and obtained == obtained|int %}{{ obtained|int }}{% else %}{{ obtained }}{% endif %}/{% if max_val is number and max_val == max_val|int %}{{ max_val|int }}{% else %}{{ max_val }}{% endif %}
+                                <span class="text-xs text-gray-500">({{ "%.2f"|format(student_marks['internal1'].percentage) }}%)</span>
                                 {% else %}
                                 <span class="text-gray-400">-</span>
                                 {% endif %}
                             </td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                                 {% if student_marks.get('internal2') %}
-                                {{ student_marks['internal2'].marks_obtained }}/{{ student_marks['internal2'].max_marks }}
-                                <span class="text-xs text-gray-500">({{ student_marks['internal2'].percentage }}%)</span>
+                                {% set obtained = student_marks['internal2'].marks_obtained %}
+                                {% set max_val = student_marks['internal2'].max_marks %}
+                                {% if obtained is number and obtained == obtained|int %}{{ obtained|int }}{% else %}{{ obtained }}{% endif %}/{% if max_val is number and max_val == max_val|int %}{{ max_val|int }}{% else %}{{ max_val }}{% endif %}
+                                <span class="text-xs text-gray-500">({{ "%.2f"|format(student_marks['internal2'].percentage) }}%)</span>
                                 {% else %}
                                 <span class="text-gray-400">-</span>
                                 {% endif %}
                             </td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                                 {% if student_marks.get('assignment') %}
-                                {{ student_marks['assignment'].marks_obtained }}/{{ student_marks['assignment'].max_marks }}
-                                <span class="text-xs text-gray-500">({{ student_marks['assignment'].percentage }}%)</span>
+                                {% set obtained = student_marks['assignment'].marks_obtained %}
+                                {% set max_val = student_marks['assignment'].max_marks %}
+                                {% if obtained is number and obtained == obtained|int %}{{ obtained|int }}{% else %}{{ obtained }}{% endif %}/{% if max_val is number and max_val == max_val|int %}{{ max_val|int }}{% else %}{{ max_val }}{% endif %}
+                                <span class="text-xs text-gray-500">({{ "%.2f"|format(student_marks['assignment'].percentage) }}%)</span>
                                 {% else %}
                                 <span class="text-gray-400">-</span>
                                 {% endif %}
                             </td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                                 {% if student_marks.get('project') %}
-                                {{ student_marks['project'].marks_obtained }}/{{ student_marks['project'].max_marks }}
-                                <span class="text-xs text-gray-500">({{ student_marks['project'].percentage }}%)</span>
+                                {% set obtained = student_marks['project'].marks_obtained %}
+                                {% set max_val = student_marks['project'].max_marks %}
+                                {% if obtained is number and obtained == obtained|int %}{{ obtained|int }}{% else %}{{ obtained }}{% endif %}/{% if max_val is number and max_val == max_val|int %}{{ max_val|int }}{% else %}{{ max_val }}{% endif %}
+                                <span class="text-xs text-gray-500">({{ "%.2f"|format(student_marks['project'].percentage) }}%)</span>
                                 {% else %}
                                 <span class="text-gray-400">-</span>
                                 {% endif %}
                             </td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                                <span class="font-medium">{{ student.get_overall_marks_percentage() }}%</span>
+                                <span class="font-medium">{{ "%.2f"|format(student.get_overall_marks_percentage()) }}%</span>
                             </td>
                         </tr>
                         {% endfor %}
@@ -564,6 +572,20 @@ document.addEventListener('input', function(e) {
 
 // Keyboard shortcuts
 document.addEventListener('keydown', function(e) {
+        // Custom Tab navigation: when focused on a mark input, jump directly to the next student's mark input
+        if (e.key === 'Tab' && document.activeElement.classList && document.activeElement.classList.contains('marks-input')) {
+            e.preventDefault();
+            const inputs = Array.from(document.querySelectorAll('.marks-input'));
+            const currentIndex = inputs.indexOf(document.activeElement);
+            const nextIndex = e.shiftKey ? Math.max(currentIndex - 1, 0) : Math.min(currentIndex + 1, inputs.length - 1);
+            const target = inputs[nextIndex];
+            if (target) {
+                target.focus();
+                // Select existing value for quick overwrite
+                target.select?.();
+            }
+            return;
+        }
     // Ctrl+A to fill all marks
     if (e.ctrlKey && e.key === 'a' && document.activeElement.classList.contains('marks-input')) {
         e.preventDefault();

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Marks Deficiency Report - Moulya College Management{% endblock %}
+{% block title %}Marks Deficiency Report - Academic Record Management System{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50">
@@ -24,7 +24,7 @@
                 
                 <!-- Desktop menu -->
                 <div class="hidden md:flex items-center space-x-4">
-                    <span class="text-sm text-gray-700">{{ current_user.username }}</span>
+                    <span class="text-sm text-gray-700">{{ current_user.name or current_user.username }}</span>
                     <form method="POST" action="{{ url_for('auth.logout') }}" class="inline">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <button type="submit" class="text-sm text-gray-600 hover:text-black">Logout</button>
@@ -35,7 +35,7 @@
             <!-- Mobile menu -->
             <div id="mobile-menu" class="md:hidden hidden border-t border-gray-200 py-4">
                 <div class="space-y-2">
-                    <div class="text-sm text-gray-700 px-2">{{ current_user.username }}</div>
+                    <div class="text-sm text-gray-700 px-2">{{ current_user.name or current_user.username }}</div>
                     <form method="POST" action="{{ url_for('auth.logout') }}" class="px-2">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <button type="submit" class="w-full text-left py-2 text-sm text-gray-600 hover:text-black">Logout</button>
@@ -46,6 +46,42 @@
     </nav>
 
     <div class="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
+        <!-- Range Filter Section -->
+        <div class="bg-white shadow rounded-lg mb-6">
+            <div class="px-4 py-4 sm:py-5 sm:px-6">
+                <h3 class="text-base sm:text-lg leading-6 font-medium text-gray-900">Marks Threshold Filter</h3>
+                <p class="mt-1 text-sm text-gray-500">Set the minimum marks percentage to filter students</p>
+                
+                <div class="mt-4">
+                    <div class="flex items-center space-x-4">
+                        <label for="threshold-slider" class="text-sm font-medium text-gray-700">Threshold:</label>
+                        <div class="flex-1 max-w-xs">
+                            <input type="range" 
+                                   id="threshold-slider" 
+                                   name="threshold" 
+                                   min="0" 
+                                   max="100" 
+                                   value="{{ threshold }}" 
+                                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                                   oninput="updateThreshold(this.value)">
+                        </div>
+                        <div class="w-16">
+                            <span id="threshold-value" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                                {{ "%.2f"|format(threshold) }}%
+                            </span>
+                        </div>
+                        <button onclick="applyFilter()" 
+                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            Apply Filter
+                        </button>
+                    </div>
+                    <div class="mt-2 text-xs text-gray-500">
+                        Students with marks below <span id="threshold-text">{{ "%.2f"|format(threshold) }}%</span> will be shown
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {% if deficiency_data %}
         <div class="space-y-4 sm:space-y-6">
             {% for data in deficiency_data %}
@@ -67,7 +103,7 @@
                                     <p class="text-xs text-gray-500">{{ student_data.student.roll_number }}</p>
                                 </div>
                                 <div class="ml-2 text-right">
-                                    <div class="text-sm font-medium text-red-600">{{ student_data.overall_percentage }}%</div>
+                                    <div class="text-sm font-medium text-red-600">{{ "%.2f"|format(student_data.overall_percentage) }}%</div>
                                     <div class="text-xs text-red-500">Overall</div>
                                 </div>
                             </div>
@@ -138,7 +174,7 @@
                             <tr class="bg-red-50 hover:bg-red-100">
                                 <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{{ student_data.student.name }}</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{{ student_data.student.roll_number }}</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">{{ student_data.overall_percentage }}%</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">{{ "%.2f"|format(student_data.overall_percentage) }}%</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                                     {% if marks_summary.internal1.obtained > 0 %}
                                     {{ marks_summary.internal1.obtained }}/{{ marks_summary.internal1.max }}
@@ -188,7 +224,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
                 <h3 class="mt-2 text-base sm:text-lg font-medium text-gray-900">No Marks Deficiencies</h3>
-                <p class="mt-1 text-sm text-gray-500">All students in your subjects have good performance (≥50%).</p>
+                <p class="mt-1 text-sm text-gray-500">All students in your subjects have good performance (≥{{ "%.2f"|format(threshold) }}%).</p>
                 <a href="{{ url_for('lecturer.dashboard') }}" 
                    class="mt-4 inline-flex items-center px-4 py-2 border border-black text-sm font-medium rounded text-black bg-white hover:bg-gray-50">
                     Back to Dashboard
@@ -214,6 +250,20 @@ document.addEventListener('click', function(event) {
         menu.classList.add('hidden');
     }
 });
+
+// Range slider functionality
+function updateThreshold(value) {
+    const formattedValue = parseFloat(value).toFixed(2);
+    document.getElementById('threshold-value').textContent = formattedValue + '%';
+    document.getElementById('threshold-text').textContent = formattedValue + '%';
+}
+
+function applyFilter() {
+    const threshold = document.getElementById('threshold-slider').value;
+    const currentUrl = new URL(window.location);
+    currentUrl.searchParams.set('threshold', threshold);
+    window.location.href = currentUrl.toString();
+}
 </script>
 
 <style>
@@ -222,6 +272,50 @@ document.addEventListener('click', function(event) {
     body { background: white !important; }
     .block { display: block !important; }
     .hidden { display: block !important; }
+}
+
+/* Range slider styling */
+.slider {
+    -webkit-appearance: none;
+    appearance: none;
+    background: #e5e7eb;
+    outline: none;
+    border-radius: 8px;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #3b82f6;
+    cursor: pointer;
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #3b82f6;
+    cursor: pointer;
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.slider::-webkit-slider-track {
+    background: #e5e7eb;
+    border-radius: 8px;
+    height: 8px;
+}
+
+.slider::-moz-range-track {
+    background: #e5e7eb;
+    border-radius: 8px;
+    height: 8px;
+    border: none;
 }
 </style>
 {% endblock %}

@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() if csrf_token else '' }}">
-    <title>{% block title %}Moulya College Management System{% endblock %}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>{% block title %}Academic Record Management System{% endblock %}</title>
+    <script src="{{ url_for('static', filename='js/tailwindcss.js') }}"></script>
     <!-- Alpine.js -->
     <script src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js" defer></script>
     <style>
@@ -35,6 +35,20 @@
     </script>
 </head>
 <body class="h-full bg-gray-50">
+    {% if not hide_header %}
+    <header class="bg-white border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 py-2 sm:py-3 flex flex-col md:flex-row md:items-center md:gap-4 gap-2">
+            <div class="flex md:block items-center justify-center">
+                <img src="{{ url_for('static', filename='img/logo-removebg-preview.png') }}" alt="College Logo" class="h-14 w-14 sm:h-16 sm:w-16 md:h-18 md:w-18 lg:h-20 lg:w-20 object-contain" />
+            </div>
+            <div class="min-w-0 text-center md:text-left">
+                <h1 class="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 leading-tight md:truncate">Dr. B. B. Hegde First Grade College, Kundapura</h1>
+                <div class="h-0.5 bg-gray-300 my-1 mx-auto md:mx-0 w-11/12 md:w-full"></div>
+                <p class="text-xs sm:text-sm text-gray-600">A Unit of Coondapur Education Society (R)</p>
+            </div>
+        </div>
+    </header>
+    {% endif %}
     {% block content %}{% endblock %}
     
     {% block scripts %}{% endblock %}

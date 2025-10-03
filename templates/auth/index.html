@@ -1,46 +1,45 @@
 {% extends "base.html" %}
 
-{% block title %}Login - Moulya College Management{% endblock %}
+{% block title %}Login - Academic Record Management System{% endblock %}
 
 {% block content %}
 <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
-        <div>
-            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                Moulya College Management System
-            </h2>
-            <p class="mt-2 text-center text-sm text-gray-600">
-                Select your login type
-            </p>
+    <div class="w-full max-w-lg">
+        <div class="text-center mb-8">
+            <h1 class="text-5xl sm:text-6xl font-extrabold tracking-tight text-gray-900">
+                Moulya
+            </h1>
+            <p class="mt-2 text-base sm:text-lg text-gray-700">Academic Record Management System</p>
         </div>
-        
-        <div class="space-y-4">
-            <a href="{{ url_for('auth.management_login') }}" 
-               class="group relative w-full flex justify-center py-4 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black">
-                <span class="absolute left-0 inset-y-0 flex items-center pl-3">
-                    <svg class="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clip-rule="evenodd"></path>
-                    </svg>
-                </span>
-                Management Login
-            </a>
-            
-            <a href="{{ url_for('auth.lecturer_login') }}" 
-               class="group relative w-full flex justify-center py-4 px-4 border border-black text-sm font-medium rounded-md text-black bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black">
-                <span class="absolute left-0 inset-y-0 flex items-center pl-3">
-                    <svg class="h-5 w-5 text-black" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"></path>
-                    </svg>
-                </span>
-                Lecturer Login
-            </a>
+
+        <div class="bg-white/80 backdrop-blur rounded-2xl shadow-lg border border-gray-200 p-5 sm:p-6">
+            <p class="text-center text-sm text-gray-600 mb-5">Select your login type</p>
+
+            <div class="space-y-3">
+                <a href="{{ url_for('auth.management_login') }}"
+                   class="flex items-center justify-center gap-2 w-full py-3.5 sm:py-4 rounded-xl text-white bg-gray-900 hover:bg-gray-800 active:bg-black transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900">
+                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clip-rule="evenodd"/></svg>
+                    <span class="text-sm sm:text-base font-medium">Management Login</span>
+                </a>
+
+                <a href="{{ url_for('auth.lecturer_login') }}"
+                   class="flex items-center justify-center gap-2 w-full py-3.5 sm:py-4 rounded-xl text-gray-900 bg-white border border-gray-900 hover:bg-gray-50 active:bg-gray-100 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900">
+                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/></svg>
+                    <span class="text-sm sm:text-base font-medium">Lecturer Login</span>
+                </a>
+
+                <a href="{{ url_for('auth.student_login') }}"
+                   class="flex items-center justify-center gap-2 w-full py-3.5 sm:py-4 rounded-xl text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600">
+                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.84L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.84l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/></svg>
+                    <span class="text-sm sm:text-base font-medium">Student Login</span>
+                </a>
+            </div>
         </div>
-        
-        <div class="text-center">
-            <p class="text-xs text-gray-500">
-                © 2024 Moulya College Management System
-            </p>
-        </div>
+
+        <p class="mt-6 text-center text-xs sm:text-sm font-semibold text-gray-700">
+            © 2025 Moulya | Developed by Incubation Center | All Rights Reserved.
+        </p>
     </div>
+    
 </div>
 {% endblock %}

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ subject.name }} - Attendance - Moulya College Management{% endblock %}
+{% block title %}{{ subject.name }} - Attendance - Academic Record Management System{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50">
@@ -24,7 +24,7 @@
                 
                 <!-- Desktop menu -->
                 <div class="hidden md:flex items-center space-x-4">
-                    <span class="text-sm text-gray-700">{{ current_user.username }}</span>
+                    <span class="text-sm text-gray-700">{{ current_user.name or current_user.username }}</span>
                     <form method="POST" action="{{ url_for('auth.logout') }}" class="inline">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <button type="submit" class="text-sm text-gray-600 hover:text-black">Logout</button>
@@ -35,7 +35,7 @@
             <!-- Mobile menu -->
             <div id="mobile-menu" class="md:hidden hidden border-t border-gray-200 py-4">
                 <div class="space-y-2">
-                    <div class="text-sm text-gray-700 px-2">{{ current_user.username }}</div>
+                    <div class="text-sm text-gray-700 px-2">{{ current_user.name or current_user.username }}</div>
                     <form method="POST" action="{{ url_for('auth.logout') }}" class="px-2">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <button type="submit" class="w-full text-left py-2 text-sm text-gray-600 hover:text-black">Logout</button>
@@ -53,10 +53,6 @@
                 <p class="text-xs sm:text-sm text-gray-500 mt-1">{{ subject.code }} | {{ subject.course.name if subject.course else 'N/A' }}</p>
                 <div class="mt-2 flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
                     <span class="bg-gray-100 px-2 py-1 rounded">Students: {{ students|length }}</span>
-                    {% if monthly_summary %}
-                    <span class="bg-gray-100 px-2 py-1 rounded">Classes: {{ monthly_summary.total_classes }}</span>
-                    <span class="bg-gray-100 px-2 py-1 rounded">Avg: {{ "%.1f"|format(monthly_summary.average_attendance) }}%</span>
-                    {% endif %}
                 </div>
             </div>
         </div>
@@ -65,179 +61,77 @@
         <div class="mb-4 sm:mb-6">
             <div class="border-b border-gray-200">
                 <nav class="-mb-px flex">
-                    <button onclick="showTab('daily')" id="daily-tab" class="tab-button flex-1 border-b-2 border-black text-black py-2 px-2 text-xs sm:text-sm font-medium text-center">
-                        Daily
+                    <button onclick="showTab('monthly-view')" id="monthly-view-tab" class="tab-button flex-1 border-b-2 border-black text-black py-2 px-2 text-xs sm:text-sm font-medium text-center">
+                        View Reports
                     </button>
                     <button onclick="showTab('monthly-mark')" id="monthly-mark-tab" class="tab-button flex-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-2 px-2 text-xs sm:text-sm font-medium text-center">
                         Monthly
-                    </button>
-                    <button onclick="showTab('monthly-view')" id="monthly-view-tab" class="tab-button border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-2 px-1 text-sm font-medium">
-                        View Reports
                     </button>
                 </nav>
             </div>
         </div>
 
-        <!-- Daily Attendance Tab -->
-        <div id="daily-content" class="tab-content">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Daily Attendance Form -->
-                <div class="lg:col-span-2">
-                    <div class="bg-white shadow rounded-lg">
-                        <div class="px-4 py-5 sm:p-6">
-                            <h3 class="text-lg font-medium text-gray-900 mb-4">Record Daily Attendance</h3>
-                            
-                            <!-- Date Selection -->
-                            <form method="GET" class="mb-4">
-                                <div class="flex items-center space-x-4">
-                                    <div>
-                                        <label for="date" class="block text-sm font-medium text-gray-700">Date</label>
-                                        <input type="date" name="date" id="date" value="{{ selected_date.strftime('%Y-%m-%d') }}"
-                                               class="mt-1 block px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm">
-                                    </div>
-                                    <div class="pt-6">
-                                        <button type="submit" class="bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800">
-                                            Load Date
-                                        </button>
-                                    </div>
-                                </div>
-                            </form>
-
-                            <!-- Attendance Form -->
-                            {% if students %}
-                            <form method="POST" action="{{ url_for('lecturer.record_daily_attendance', subject_id=subject.id) }}">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                <input type="hidden" name="attendance_date" value="{{ selected_date.strftime('%Y-%m-%d') }}">
-                                
-                                <!-- Search and Bulk Actions -->
-                                <div class="mb-4 space-y-3">
-                                    <div class="flex items-center space-x-4">
-                                        <div class="flex-1">
-                                            <input type="text" id="student-search" placeholder="Search students by name or roll number..." 
-                                                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm">
-                                        </div>
-                                        <div class="flex space-x-2">
-                                            <button type="button" onclick="markAll('present')" class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">
-                                                All Present
-                                            </button>
-                                            <button type="button" onclick="markAll('absent')" class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700">
-                                                All Absent
-                                            </button>
-                                            <button type="button" onclick="markFiltered('present')" class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">
-                                                Filtered Present
-                                            </button>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Quick Stats -->
-                                    <div class="flex items-center space-x-4 text-sm text-gray-600">
-                                        <span>Total: <span id="total-count">{{ students|length }}</span></span>
-                                        <span>Present: <span id="present-count">0</span></span>
-                                        <span>Absent: <span id="absent-count">0</span></span>
-                                        <span>Unmarked: <span id="unmarked-count">{{ students|length }}</span></span>
-                                    </div>
-                                </div>
-                                
-                                <!-- Students Grid -->
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto" id="students-container">
-                                    {% for student in students %}
-                                    <div class="student-row flex items-center justify-between p-3 border border-gray-200 rounded-md hover:bg-gray-50" 
-                                         data-name="{{ student.name.lower() }}" data-roll="{{ student.roll_number.lower() }}">
-                                        <div class="flex-1">
-                                            <p class="text-sm font-medium text-gray-900">{{ student.name }}</p>
-                                            <p class="text-sm text-gray-500">{{ student.roll_number }}</p>
-                                        </div>
-                                        <div class="flex items-center space-x-2">
-                                            <label class="flex items-center cursor-pointer">
-                                                <input type="radio" name="attendance_{{ student.id }}" value="present" 
-                                                       {% if existing_attendance.get(student.id) == 'present' %}checked{% endif %}
-                                                       class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 attendance-radio"
-                                                       onchange="updateCounts()">
-                                                <span class="ml-1 text-xs text-green-600 font-medium">P</span>
-                                            </label>
-                                            <label class="flex items-center cursor-pointer">
-                                                <input type="radio" name="attendance_{{ student.id }}" value="absent" 
-                                                       {% if existing_attendance.get(student.id) == 'absent' %}checked{% endif %}
-                                                       class="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 attendance-radio"
-                                                       onchange="updateCounts()">
-                                                <span class="ml-1 text-xs text-red-600 font-medium">A</span>
-                                            </label>
-                                        </div>
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                                
-                                <div class="mt-6">
-                                    <button type="submit" class="w-full bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black">
-                                        Save Attendance for {{ selected_date.strftime('%B %d, %Y') }}
-                                    </button>
-                                </div>
-                            </form>
-                            {% else %}
-                            <div class="text-center py-8">
-                                <p class="text-gray-500">No students enrolled in this subject.</p>
-                                <a href="{{ url_for('lecturer.subject_students', subject_id=subject.id) }}" class="mt-2 inline-block text-blue-600 hover:text-blue-800">
-                                    Add students to this subject →
-                                </a>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Quick Actions Sidebar -->
-                <div>
-                    <div class="bg-white shadow rounded-lg">
-                        <div class="px-4 py-5 sm:p-6">
-                            <h3 class="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
-                            <div class="space-y-2">
-                                <a href="{{ url_for('lecturer.subject_reports', subject_id=subject.id) }}" 
-                                   class="block w-full text-center bg-white text-black border border-black py-2 px-4 rounded-md hover:bg-gray-50">
-                                    View Reports
-                                </a>
-                                <a href="{{ url_for('lecturer.marks_management', subject_id=subject.id) }}" 
-                                   class="block w-full text-center bg-white text-black border border-black py-2 px-4 rounded-md hover:bg-gray-50">
-                                    Manage Marks
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Monthly Summary Info -->
-                    {% if monthly_summary %}
-                    <div class="mt-6 bg-white shadow rounded-lg">
-                        <div class="px-4 py-5 sm:p-6">
-                            <h3 class="text-lg font-medium text-gray-900 mb-4">Current Month Summary</h3>
-                            <div class="space-y-2 text-sm">
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">Month:</span>
-                                    <span class="font-medium">{{ ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][monthly_summary.month] }} {{ monthly_summary.year }}</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">Total Classes:</span>
-                                    <span class="font-medium">{{ monthly_summary.total_classes }}</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">Average Attendance:</span>
-                                    <span class="font-medium">{{ "%.1f"|format(monthly_summary.average_attendance) }}%</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
+        <!-- Quick Actions Sidebar -->
+       
 
         <!-- Monthly Attendance Marking Tab -->
         <div id="monthly-mark-content" class="tab-content hidden">
             <div class="bg-white shadow rounded-lg">
                 <div class="px-4 py-5 sm:p-6">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                    <!-- Keep data only; do not render visible banners -->
+                    <div class="hidden" id="monthly-flash-container"></div>
+                    <div id="flash-data" data-messages='{{ messages|tojson|safe }}' class="hidden"></div>
+                    <script>
+                    // No inline banners; use modal only
+                    // Also show popup modal for readability
+                    (function(){
+                        try {
+                            const el = document.getElementById('flash-data');
+                            if (!el) return;
+                            const raw = el.getAttribute('data-messages') || '[]';
+                            const msgs = JSON.parse(raw);
+                            if (Array.isArray(msgs)) {
+                                let hasError = false;
+                                msgs.forEach(function(m){
+                                    const category = m[0] || 'info';
+                                    const text = m[1] || '';
+                                    if (category === 'error') {
+                                        hasError = true;
+                                        openAlertModal('Error!', text, 'error');
+                                    }
+                                });
+                                // If there was an error, ensure Monthly tab is visible and hide any global banner
+                                if (hasError) {
+                                    try { showTab('monthly-mark'); } catch(e) {}
+                                    // Remove/hide top-page flash banners so the modal is the only visible message
+                                    try {
+                                        document.querySelectorAll('[role="alert"], .alert, .flashes, .flash, .bg-red-100, .bg-green-100').forEach(function(el){
+                                            el.style.display = 'none';
+                                        });
+                                        // Also remove base template fixed flash container
+                                        document.querySelectorAll('div.fixed.top-4.right-4').forEach(function(el){
+                                            el.remove();
+                                        });
+                                    } catch(e) {}
+                                }
+                            }
+                        } catch(e){}
+                    })();
+                    </script>
+                    {% endif %}
+                    {% endwith %}
+
                     <h3 class="text-lg font-medium text-gray-900 mb-4">Mark Monthly Attendance</h3>
                     <p class="text-sm text-gray-600 mb-6">Enter the number of classes each student attended out of total classes conducted in the month.</p>
                     
                     <form method="POST" action="{{ url_for('lecturer.record_monthly_attendance', subject_id=subject.id) }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <input type="hidden" id="prior_total_classes" value="{{ prior_total_classes or 0 }}" />
+                        <div id="prior_totals_map" data-json='{{ prior_totals_map|tojson|safe }}' class="hidden"></div>
+                        <div id="prev_present_map" data-json='{{ prev_present_map|tojson|safe }}' class="hidden"></div>
+                        <div id="prev_present_by_month_map" data-json='{{ prev_present_by_month_map|tojson|safe }}' class="hidden"></div>
                         
                         <!-- Month and Year Selection -->
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -250,14 +144,15 @@
                                     </option>
                                     {% endfor %}
                                 </select>
+                                <p class="mt-1 text-xs text-gray-500" id="month-helper"></p>
                             </div>
                             <div>
                                 <label for="monthly_year" class="block text-sm font-medium text-gray-700">Year</label>
                                 <input type="number" name="year" id="monthly_year" value="{{ selected_date.year }}" min="2020" max="2030" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm">
                             </div>
                             <div>
-                                <label for="monthly_total_classes" class="block text-sm font-medium text-gray-700">Total Classes</label>
-                                <input type="number" name="total_classes" id="monthly_total_classes" min="1" max="50" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm">
+                                <label for="monthly_total_classes" class="block text-sm font-medium text-gray-700">Total Classes (cumulative till selected month)</label>
+                                <input type="number" name="total_classes" id="monthly_total_classes" min="1" max="400" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black sm:text-sm" placeholder="Total Classes (Number)">
                             </div>
                         </div>
 
@@ -283,7 +178,7 @@
                             </div>
                         </div>
                         
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto" id="monthly-students-container">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto w-full" id="monthly-students-container">
                             {% for student in students %}
                             <div class="monthly-student-row flex items-center justify-between p-3 border border-gray-200 rounded-md hover:bg-gray-50" 
                                  data-name="{{ student.name.lower() }}" data-roll="{{ student.roll_number.lower() }}">
@@ -292,7 +187,7 @@
                                     <p class="text-xs text-gray-500">{{ student.roll_number }}</p>
                                 </div>
                                 <div class="flex items-center space-x-2">
-                                    <input type="number" name="attended_{{ student.id }}" min="0" max="50" 
+                                    <input type="number" name="attended_{{ student.id }}" min="0" max="400" 
                                            class="w-16 px-2 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-black focus:border-black monthly-attendance-input"
                                            placeholder="0">
                                 </div>
@@ -301,7 +196,7 @@
                         </div>
                         
                         <div class="mt-6">
-                            <button type="submit" class="w-full bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black">
+                            <button type="button" id="monthly-attendance-confirm" class="w-full bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black">
                                 Save Monthly Attendance
                             </button>
                         </div>
@@ -319,52 +214,55 @@
         </div>
 
         <!-- Monthly View Tab -->
-        <div id="monthly-view-content" class="tab-content hidden">
+        <div id="monthly-view-content" class="tab-content">
             <div class="bg-white shadow rounded-lg">
                 <div class="px-4 py-5 sm:p-6">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-lg font-medium text-gray-900">Monthly Attendance Reports</h3>
-                        <form method="GET" class="flex items-center space-x-2">
+                        <form method="GET" class="flex flex-col sm:flex-row gap-2 sm:gap-2 w-full">
                             <input type="hidden" name="view" value="monthly">
-                            <select name="view_month" onchange="this.form.submit()" class="px-3 py-1 border border-gray-300 rounded-md text-sm">
+                            <select name="view_month" class="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-black focus:border-black">
                                 {% for i in range(1, 13) %}
                                 <option value="{{ i }}" {% if i == (request.args.get('view_month', selected_date.month)|int) %}selected{% endif %}>
                                     {{ ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][i] }}
                                 </option>
                                 {% endfor %}
                             </select>
-                            <select name="view_year" onchange="this.form.submit()" class="px-3 py-1 border border-gray-300 rounded-md text-sm">
+                            <select name="view_year" class="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-black focus:border-black">
                                 {% for year in range(2020, 2031) %}
                                 <option value="{{ year }}" {% if year == (request.args.get('view_year', selected_date.year)|int) %}selected{% endif %}>{{ year }}</option>
                                 {% endfor %}
                             </select>
+                            <button type="submit" class="px-3 py-1 bg-black text-white rounded-md text-sm hover:bg-gray-800">Apply</button>
                         </form>
                     </div>
 
                     {% if monthly_attendance_data %}
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
+                    <div class="overflow-x-auto w-full">
+                        <table class="min-w-full w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roll Number</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Classes</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Present</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Absent</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Percentage</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                                    <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roll</th>
+                                    <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                                    <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Present</th>
+                                    <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Absent</th>
+                                    <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">%</th>
+                                    <th class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 {% for data in monthly_attendance_data %}
                                 <tr class="hover:bg-gray-50">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ data.student_name }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ data.roll_number }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ data.total_classes }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600">{{ data.present_classes }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">{{ data.absent_classes }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ "%.1f"|format(data.attendance_percentage) }}%</td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
+                                    <td class="px-3 sm:px-6 py-4 text-sm font-medium text-gray-900">
+                                        <div class="truncate max-w-32 sm:max-w-none">{{ data.student_name }}</div>
+                                    </td>
+                                    <td class="px-3 sm:px-6 py-4 text-sm text-gray-500">{{ data.roll_number }}</td>
+                                    <td class="px-3 sm:px-6 py-4 text-sm text-gray-900">{{ data.total_classes }}</td>
+                                    <td class="px-3 sm:px-6 py-4 text-sm text-green-600 font-medium">{{ data.present_classes }}</td>
+                                    <td class="px-3 sm:px-6 py-4 text-sm text-red-600 font-medium">{{ data.absent_classes }}</td>
+                                    <td class="px-3 sm:px-6 py-4 text-sm text-gray-900 font-medium">{{ "%.1f"|format(data.attendance_percentage) }}%</td>
+                                    <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
                                         {% if data.attendance_percentage >= 75 %}
                                         <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Good</span>
                                         {% elif data.attendance_percentage >= 60 %}
@@ -391,6 +289,55 @@
 </div>
 
 <script>
+// Lightweight modal for alerts (success/error/info)
+function openAlertModal(title, message, category, onConfirm, onCancel) {
+    // Remove existing
+    const existing = document.getElementById('alert-modal');
+    if (existing) existing.remove();
+    const overlay = document.createElement('div');
+    overlay.id = 'alert-modal';
+    overlay.className = 'fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50';
+    const box = document.createElement('div');
+    box.className = 'bg-white rounded-md shadow-xl w-11/12 max-w-md p-5 text-center';
+    // SVG icon for confirm
+    const icon = document.createElement('div');
+    icon.className = 'mx-auto mb-3 flex items-center justify-center';
+    if (category === 'info') {
+        icon.innerHTML = `<svg xmlns='http://www.w3.org/2000/svg' class='h-12 w-12 text-green-500' fill='none' viewBox='0 0 24 24' stroke='currentColor'><circle cx='12' cy='12' r='10' stroke='currentColor' stroke-width='2' fill='white'/><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 12l2 2l4-4'/></svg>`;
+    } else if (category === 'error') {
+        icon.innerHTML = `<svg xmlns='http://www.w3.org/2000/svg' class='h-12 w-12 text-red-500' fill='none' viewBox='0 0 24 24' stroke='currentColor'><circle cx='12' cy='12' r='10' stroke='currentColor' stroke-width='2' fill='white'/><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 18L18 6M6 6l12 12'/></svg>`;
+    } else {
+        icon.innerHTML = `<svg xmlns='http://www.w3.org/2000/svg' class='h-12 w-12 text-blue-500' fill='none' viewBox='0 0 24 24' stroke='currentColor'><circle cx='12' cy='12' r='10' stroke='currentColor' stroke-width='2' fill='white'/><text x='12' y='16' text-anchor='middle' font-size='12' fill='currentColor'>i</text></svg>`;
+    }
+    const h = document.createElement('div');
+    h.className = 'text-xl font-semibold mb-2';
+    h.textContent = title || 'Notice';
+    const p = document.createElement('div');
+    p.className = 'text-sm text-gray-700 mb-4';
+    p.textContent = message || '';
+    const btnWrap = document.createElement('div');
+    btnWrap.className = 'flex justify-center gap-4';
+    const okBtn = document.createElement('button');
+    okBtn.className = 'px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700';
+    okBtn.textContent = 'OK';
+    okBtn.onclick = function(){
+        document.getElementById('alert-modal')?.remove();
+        if (typeof onConfirm === 'function') onConfirm();
+    };
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.onclick = function(){
+        document.getElementById('alert-modal')?.remove();
+        if (typeof onCancel === 'function') onCancel();
+    };
+    btnWrap.appendChild(okBtn);
+    btnWrap.appendChild(cancelBtn);
+    box.appendChild(icon); box.appendChild(h); box.appendChild(p); box.appendChild(btnWrap);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+}
+
 function showTab(tabName) {
     // Hide all tab contents
     document.querySelectorAll('.tab-content').forEach(content => {
@@ -460,16 +407,39 @@ document.getElementById('student-search')?.addEventListener('input', function() 
 
 // Monthly Attendance Functions
 function setAllAttendance(type) {
-    const totalClasses = parseInt(document.getElementById('monthly_total_classes').value) || 0;
     const inputs = document.querySelectorAll('.monthly-attendance-input');
-    
-    let value = 0;
-    if (type === 'full') value = totalClasses;
-    else if (type === 'half') value = Math.floor(totalClasses / 2);
-    else if (type === 'zero') value = 0;
+    const month = parseInt(document.getElementById('monthly_month').value) || 0;
+    const year = parseInt(document.getElementById('monthly_year').value) || 0;
+    const monthClasses = computeMonthClasses(year, month);
+    const prevMap = getPrevPresentForMonth(year, month);
     
     inputs.forEach(input => {
+        const idMatch = (input.name || '').match(/attended_(\d+)/);
+        const studentId = idMatch ? parseInt(idMatch[1]) : null;
+        const prevPresents = studentId && prevMap[String(studentId)] ? parseInt(prevMap[String(studentId)]) : 0;
+        
+        // Calculate valid range for this student
+        const minAllowed = Math.max(prevPresents, 0);
+        const maxAllowed = prevPresents + monthClasses;
+        
+        let value;
+        if (type === 'zero') {
+            // Set to minimum allowed value
+            value = minAllowed;
+        } else if (type === 'half') {
+            // Set to middle of the range
+            value = Math.floor((minAllowed + maxAllowed) / 2);
+        } else if (type === 'full') {
+            // Set to maximum allowed value
+            value = maxAllowed;
+        }
+        
+        // Ensure value is within valid range
+        value = Math.max(minAllowed, Math.min(value, maxAllowed));
         input.value = value;
+        
+        // Remove any error styling
+        input.classList.remove('border-red-500');
     });
 }
 
@@ -492,20 +462,296 @@ document.getElementById('monthly-student-search')?.addEventListener('input', fun
 
 // Auto-calculate attendance based on total classes
 document.getElementById('monthly_total_classes')?.addEventListener('input', function() {
-    const totalClasses = parseInt(this.value) || 0;
-    const attendanceInputs = document.querySelectorAll('input[name^="attended_"]');
-    
-    attendanceInputs.forEach(input => {
-        input.max = totalClasses;
-        if (parseInt(input.value) > totalClasses) {
-            input.value = totalClasses;
-        }
+    updatePerStudentConstraints();
+});
+
+// Real-time validation for total classes field
+document.getElementById('monthly_total_classes')?.addEventListener('blur', function() {
+    validateTotalClasses();
+});
+
+// Real-time validation for student attendance fields
+document.addEventListener('DOMContentLoaded', function() {
+    // Add blur event listeners to all student attendance inputs
+    document.querySelectorAll('.monthly-attendance-input').forEach(function(input) {
+        input.addEventListener('blur', function() {
+            validateStudentAttendance(this);
+        });
     });
+    
+    // Re-add event listeners when new inputs are added (e.g., after search filtering)
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList') {
+                mutation.addedNodes.forEach(function(node) {
+                    if (node.nodeType === 1) { // Element node
+                        const inputs = node.querySelectorAll ? node.querySelectorAll('.monthly-attendance-input') : [];
+                        inputs.forEach(function(input) {
+                            input.addEventListener('blur', function() {
+                                validateStudentAttendance(this);
+                            });
+                        });
+                    }
+                });
+            }
+        });
+    });
+    
+    const studentsContainer = document.getElementById('monthly-students-container');
+    if (studentsContainer) {
+        observer.observe(studentsContainer, { childList: true, subtree: true });
+    }
 });
 
 // Initialize counts on page load
 document.addEventListener('DOMContentLoaded', function() {
     updateCounts();
+    // Set month helper to show last date of month
+    function updateMonthHelper() {
+        const month = parseInt(document.getElementById('monthly_month').value);
+        const year = parseInt(document.getElementById('monthly_year').value);
+        if (!month || !year) return;
+        const lastDay = new Date(year, month, 0).getDate();
+        const monthName = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][month];
+        const helper = document.getElementById('month-helper');
+        if (helper) helper.textContent = `Till ${monthName} ${lastDay}, ${year}`;
+        const ttl = document.getElementById('monthly_total_classes');
+        if (ttl) ttl.placeholder = `e.g 40 ( till ${monthName} )`;
+    }
+    updateMonthHelper();
+    document.getElementById('monthly_month')?.addEventListener('change', updateMonthHelper);
+    document.getElementById('monthly_year')?.addEventListener('input', updateMonthHelper);
+    // Update constraints whenever month/year/total changes
+    document.getElementById('monthly_month')?.addEventListener('change', updatePerStudentConstraints);
+    document.getElementById('monthly_year')?.addEventListener('input', updatePerStudentConstraints);
+    document.getElementById('monthly_total_classes')?.addEventListener('input', updatePerStudentConstraints);
+    updatePerStudentConstraints();
+});
+
+// Helpers to get prior totals and prev presents
+function getPriorTotalsMap() {
+    try {
+        const el = document.getElementById('prior_totals_map');
+        if (!el) return {};
+        return JSON.parse(el.getAttribute('data-json') || '{}');
+    } catch(e) { return {}; }
+}
+
+function getPrevPresentMap() {
+    try {
+        const el = document.getElementById('prev_present_map');
+        if (!el) return {};
+        return JSON.parse(el.getAttribute('data-json') || '{}');
+    } catch(e) { return {}; }
+}
+
+function getPrevPresentForMonth(year, month) {
+    try {
+        const el = document.getElementById('prev_present_by_month_map');
+        const all = el ? JSON.parse(el.getAttribute('data-json') || '{}') : {};
+        const key = `${year}-${String(month).padStart(2,'0')}`;
+        return all[key] || {};
+    } catch(e) { return {}; }
+}
+
+function computeMonthClasses(year, month) {
+    const totalClasses = parseInt(document.getElementById('monthly_total_classes')?.value || '0');
+    if (!year || !month) return 0;
+    const map = getPriorTotalsMap();
+    const key = `${year}-${String(month).padStart(2, '0')}`;
+    const prior = map[key] != null ? parseInt(map[key]) : parseInt(document.getElementById('prior_total_classes')?.value || '0');
+    return Math.max(totalClasses - (prior || 0), 0);
+}
+
+function updatePerStudentConstraints() {
+    const month = parseInt(document.getElementById('monthly_month').value) || 0;
+    const year = parseInt(document.getElementById('monthly_year').value) || 0;
+    const monthClasses = computeMonthClasses(year, month);
+    const prevMap = getPrevPresentForMonth(year, month);
+    document.querySelectorAll('.monthly-attendance-input').forEach(function(input){
+        const idMatch = (input.name || '').match(/attended_(\d+)/);
+        const studentId = idMatch ? parseInt(idMatch[1]) : null;
+        const prevPresents = studentId && prevMap[String(studentId)] ? parseInt(prevMap[String(studentId)]) : 0;
+        const minAllowed = Math.max(prevPresents, 0);
+        const maxAllowed = prevPresents + monthClasses;
+        input.min = String(minAllowed);
+        input.max = String(maxAllowed);
+        const current = parseInt((input.value || '').toString())
+        if (!isNaN(current)) {
+            if (current < minAllowed) input.value = String(minAllowed);
+            if (current > maxAllowed) input.value = String(maxAllowed);
+        }
+    });
+}
+
+// Real-time validation functions
+async function validateTotalClasses() {
+    const month = parseInt(document.getElementById('monthly_month').value) || 0;
+    const year = parseInt(document.getElementById('monthly_year').value) || 0;
+    const totalClasses = parseInt(document.getElementById('monthly_total_classes').value || '0');
+    
+    if (!month || !year || !totalClasses) return;
+    
+    try {
+        const response = await fetch(`/lecturer/subjects/{{ subject.id }}/attendance/monthly/validate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+            },
+            body: JSON.stringify({
+                month: month,
+                year: year,
+                total_classes: totalClasses
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (!result.valid) {
+            if (result.error_type === 'cumulative_total') {
+                openAlertModal('Validation Error', result.message, 'error');
+                document.getElementById('monthly_total_classes').classList.add('border-red-500');
+            }
+        } else {
+            document.getElementById('monthly_total_classes').classList.remove('border-red-500');
+        }
+    } catch (error) {
+        console.error('Validation error:', error);
+    }
+}
+
+async function validateStudentAttendance(inputElement) {
+    const month = parseInt(document.getElementById('monthly_month').value) || 0;
+    const year = parseInt(document.getElementById('monthly_year').value) || 0;
+    const totalClasses = parseInt(document.getElementById('monthly_total_classes').value || '0');
+    const attendedClasses = parseInt(inputElement.value || '0');
+    
+    if (!month || !year || !totalClasses || !attendedClasses) return;
+    
+    // Extract student ID from input name
+    const idMatch = (inputElement.name || '').match(/attended_(\d+)/);
+    const studentId = idMatch ? parseInt(idMatch[1]) : null;
+    
+    if (!studentId) return;
+    
+    // Get student name and roll number from the DOM
+    const studentRow = inputElement.closest('.monthly-student-row');
+    const studentName = studentRow ? studentRow.querySelector('p.text-sm')?.textContent?.trim() : 'Student';
+    const studentRoll = studentRow ? studentRow.querySelector('p.text-xs')?.textContent?.trim() : '';
+    
+    try {
+        const response = await fetch(`/lecturer/subjects/{{ subject.id }}/attendance/monthly/validate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+            },
+            body: JSON.stringify({
+                month: month,
+                year: year,
+                total_classes: totalClasses,
+                student_id: studentId,
+                attended_classes: attendedClasses
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (!result.valid) {
+            if (result.error_type === 'student_range') {
+                const studentInfo = studentRoll ? `${studentName} (${studentRoll})` : studentName;
+                const errorMessage = `${studentInfo}: ${result.message}`;
+                openAlertModal('Validation Error', errorMessage, 'error');
+                inputElement.classList.add('border-red-500');
+            }
+        } else {
+            inputElement.classList.remove('border-red-500');
+        }
+    } catch (error) {
+        console.error('Validation error:', error);
+    }
+}
+
+// Validation first, then confirmation for monthly attendance submission
+document.getElementById('monthly-attendance-confirm')?.addEventListener('click', function(e) {
+    const monthSelect = document.getElementById('monthly_month');
+    const yearInput = document.getElementById('monthly_year');
+    const totalClassesInput = document.getElementById('monthly_total_classes');
+    const studentsContainer = document.getElementById('monthly-students-container');
+
+    const month = parseInt(monthSelect?.value || '0');
+    const year = parseInt(yearInput?.value || '0');
+    const totalClasses = parseInt(totalClassesInput?.value || '0');
+
+    // Basic required field checks
+    if (!month || !year || !totalClasses) {
+        openAlertModal('Validation Error', 'Please fill Month, Year and Total Classes.', 'error');
+        return;
+    }
+
+    // Validate cumulative total is >= sum of previous months' totals
+    try {
+        const priorMap = getPriorTotalsMap();
+        const key = `${year}-${String(month).padStart(2,'0')}`;
+        const priorTotal = priorMap[key] != null ? parseInt(priorMap[key]) : parseInt(document.getElementById('prior_total_classes')?.value || '0');
+        if (isFinite(priorTotal) && totalClasses < priorTotal) {
+            openAlertModal('Validation Error', `Total Classes must be at least ${priorTotal}`, 'error');
+            return;
+        }
+    } catch(err) {}
+
+    // Compute this month's actual class count based on selected month/year
+    const monthClasses = computeMonthClasses(year, month);
+
+    let invalid = false;
+    let firstErrorName = '';
+    let firstErrorMin = 0;
+    let firstErrorMax = monthClasses; // Display max as only this month's classes added to student's previous
+    document.querySelectorAll('.monthly-attendance-input').forEach(function(input) {
+        const raw = (input.value || '').toString().trim();
+        if (raw === '') { return; }
+        const attended = parseInt(raw, 10);
+        const row = input.closest('.monthly-student-row');
+        const idMatch = (input.name || '').match(/attended_(\d+)/);
+        const studentId = idMatch ? parseInt(idMatch[1]) : null;
+        // Retrieve this student's previous presents
+        const prevMap = getPrevPresentForMonth(year, month);
+        const prevPresents = studentId && prevMap[String(studentId)] ? parseInt(prevMap[String(studentId)]) : 0;
+        const minAllowed = Math.max(prevPresents, 0);
+        // Maximum cumulative allowed for this student = previous presents + classes in this month
+        const maxAllowed = prevPresents + monthClasses;
+        
+        if (isNaN(attended) || attended < minAllowed || attended > maxAllowed) {
+            if (!invalid) {
+                const nameEl = row ? row.querySelector('p.text-sm') : null;
+                firstErrorName = nameEl ? nameEl.textContent.trim() : 'This student';
+                firstErrorMin = minAllowed;
+                firstErrorMax = maxAllowed;
+            }
+            invalid = true;
+            input.classList.add('border-red-500');
+            try { input.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch(e) {}
+            input.focus();
+        } else {
+            input.classList.remove('border-red-500');
+        }
+    });
+
+    if (invalid) {
+        openAlertModal('Validation Error',`${firstErrorName}: enter between ${firstErrorMin} and ${firstErrorMax}.`, 'error');
+        return;
+    }
+
+    // Build confirmation summary
+    const monthName = monthSelect ? monthSelect.options[monthSelect.selectedIndex].text : '';
+    const studentCount = studentsContainer ? studentsContainer.children.length : 0;
+    const summary = `Month: ${monthName}\nYear: ${year}\nTotal Classes: ${totalClasses}\nStudents: ${studentCount}`;
+
+    const form = this.closest('form');
+    openAlertModal('Confirm Submission', summary, 'info', function(){
+        if (form) form.submit();
+    }, function(){});
 });
 </script>
 {% endblock %}

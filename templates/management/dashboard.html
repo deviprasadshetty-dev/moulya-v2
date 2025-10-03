@@ -1,27 +1,28 @@
 {% extends "base.html" %}
 
-{% block title %}Management Dashboard - Moulya College Management{% endblock %}
+{% block title %}Management Dashboard - Academic Record Management System{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-sm border-b border-gray-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center">
-                    <h1 class="text-xl font-semibold text-gray-900">Moulya College Management</h1>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <span class="text-sm text-gray-700">Welcome, {{ current_user.username }}</span>
-                    <a href="{{ url_for('auth.change_password') }}" class="text-sm text-gray-600 hover:text-black">Change Password</a>
+    <!-- Page-only hero title -->
+    <section class="bg-white border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 py-8">
+            <div class="text-center">
+                <h2 class="text-4xl font-extrabold text-black">Moulya</h2>
+                <p class="mt-2 text-2xl font-semibold text-gray-900">Academic Record Management System</p>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <div class="flex items-center gap-4 text-sm flex-wrap">
+                    <span class="text-gray-700">Welcome, {{ current_user.username }}</span>
+                    <a href="{{ url_for('auth.change_password') }}" class="text-gray-600 hover:text-black">Change Password</a>
                     <form method="POST" action="{{ url_for('auth.logout') }}" class="inline">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                        <button type="submit" class="text-sm text-gray-600 hover:text-black">Logout</button>
+                        <button type="submit" class="text-gray-600 hover:text-black">Logout</button>
                     </form>
                 </div>
             </div>
         </div>
-    </nav>
+    </section>
 
     <!-- Main Content -->
     <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">

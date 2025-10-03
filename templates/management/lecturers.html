@@ -1,10 +1,33 @@
 {% extends "base.html" %}
 
-{% block title %}Manage Lecturers - Moulya College Management{% endblock %}
+{% block title %}Manage Lecturers - Academic Record Management System{% endblock %}
 
 {% block scripts %}
 {{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+  /* Responsive, no-scroll credentials modal */
+  .swal-cred-popup { width: 520px; max-width: 92vw; padding: 20px; overflow-x: hidden; }
+  .swal-cred-title { font-size: 20px; font-weight: 700; }
+  .swal-cred-body { width: 100%; overflow-x: hidden; }
+  .swal-cred-body .swal2-input { width: 100% !important; box-sizing: border-box; margin: 10px 0; }
+  .swal-cred-subtle { margin-top: 2px; font-size: 12px; color: #6b7280; }
+  /* Tighten default SweetAlert spacing a bit for this modal */
+  .swal-cred-popup .swal2-html-container { margin: 0 !important; }
+  .swal-cred-popup .swal2-actions { margin-top: 14px; }
+  @media (max-width: 420px) {
+    .swal-cred-title { font-size: 18px; }
+  }
+  /* Prevent underlying page layout shift due to scrollbar padding */
+  .swal2-shown { padding-right: 0 !important; }
+  /* Ensure inputs don't cause horizontal scroll on small viewports */
+  .swal2-container { overflow-x: hidden; }
+  .swal2-popup { max-width: 92vw; }
+  .swal2-input { max-width: 100%; }
+  .swal2-content { max-width: 100%; }
+  .swal2-html-container { max-width: 100%; overflow-x: hidden; }
+  .swal2-container .swal2-popup { overflow-x: hidden; }
+</style>
 <script defer>
   // Get CSRF token from meta tag
   const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
@@ -52,51 +75,123 @@
     });
   }
 
-  // Reset lecturer password with SweetAlert
+  // Reset or customize lecturer username/password
   function resetLecturerPassword(lecturerId, lecturerName) {
     Swal.fire({
-      title: 'Reset Password?',
-      text: `Are you sure you want to reset password for ${lecturerName}?`,
-      icon: 'warning',
+      title: 'Update Credentials',
+      html:
+        '<div class="swal-cred-body">' +
+          (lecturerName ? `<div class="swal-cred-subtle">For: ${lecturerName}</div>` : '') +
+          '<input id="swal-username" class="swal2-input" inputmode="text" autocomplete="off" placeholder="New username (optional)">' +
+          '<input id="swal-password" type="password" class="swal2-input" inputmode="text" autocomplete="new-password" placeholder="New password (optional)">' +
+          '<div class="swal-cred-subtle">Leave both blank to auto-generate a password only.</div>' +
+        '</div>',
+      focusConfirm: false,
+      customClass: {
+        popup: 'swal-cred-popup',
+        title: 'swal-cred-title'
+      },
+      width: 520,
       showCancelButton: true,
+      confirmButtonText: 'Save',
       confirmButtonColor: '#000000',
       cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Yes, reset password!'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        fetch(`/management/lecturers/${lecturerId}/reset-password`, {
-          method: 'POST',
-          headers: {
-            'X-CSRF-Token': csrfToken,
-            'X-Requested-With': 'XMLHttpRequest',
-            'Content-Type': 'application/json'
-          }
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            Swal.fire({
-              title: 'Password Reset!',
-              html: `<p>${data.message}</p><p class="font-mono text-lg mt-2 p-2 bg-gray-100 rounded">${data.new_password}</p>`,
-              icon: 'success',
-              confirmButtonText: 'Copy Password',
-              showCancelButton: true,
-              cancelButtonText: 'Close'
-            }).then((result) => {
-              if (result.isConfirmed) {
-                navigator.clipboard.writeText(data.new_password);
-                Swal.fire('Copied!', 'Password copied to clipboard', 'success');
-              }
-            });
-          } else {
-            Swal.fire('Error!', data.message, 'error');
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          Swal.fire('Error!', 'An unexpected error occurred.', 'error');
-        });
+      scrollbarPadding: false,
+      didOpen: () => {
+        const u = document.getElementById('swal-username');
+        if (u) u.focus();
+      },
+      preConfirm: () => {
+        const username = (document.getElementById('swal-username').value || '').trim();
+        const password = (document.getElementById('swal-password').value || '').trim();
+        if (username && !/^[A-Za-z0-9_]{3,80}$/.test(username)) {
+          Swal.showValidationMessage('Username: 3-80 chars; letters, numbers, underscore only');
+          return false;
+        }
+        if (password && password.length < 6) {
+          Swal.showValidationMessage('Password must be at least 6 characters');
+          return false;
+        }
+        return { username, password };
       }
+    }).then(result => {
+      if (!result.isConfirmed) return;
+      const body = result.value || {};
+      fetch(`/management/lecturers/${lecturerId}/reset-password`, {
+        method: 'POST',
+        headers: {
+          'X-CSRF-Token': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          Swal.fire('Success!', data.message || 'Credentials updated', 'success').then(() => window.location.reload());
+        } else {
+          Swal.fire('Error!', data.message || 'Failed to update', 'error');
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        Swal.fire('Error!', 'An unexpected error occurred.', 'error');
+      });
+    });
+  }
+
+  // Set a custom password for ALL lecturers
+  function resetAllLecturersWithCustomPassword() {
+    Swal.fire({
+      title: 'Set Custom Password for All Lecturers',
+      html: '<input type="password" id="custom-pass" class="swal2-input" placeholder="Enter new password">' +
+            '<input type="password" id="custom-pass2" class="swal2-input" placeholder="Confirm new password">',
+      preConfirm: () => {
+        const p1 = document.getElementById('custom-pass').value.trim();
+        const p2 = document.getElementById('custom-pass2').value.trim();
+        if (!p1) {
+          Swal.showValidationMessage('Password is required');
+          return false;
+        }
+        if (p1.length < 6) {
+          Swal.showValidationMessage('Password must be at least 6 characters');
+          return false;
+        }
+        if (p1 !== p2) {
+          Swal.showValidationMessage('Passwords do not match');
+          return false;
+        }
+        return p1;
+      },
+      showCancelButton: true,
+      confirmButtonText: 'Apply to All',
+      confirmButtonColor: '#000000',
+      cancelButtonColor: '#6b7280'
+    }).then(result => {
+      if (!result.isConfirmed) return;
+      const password = result.value;
+      fetch('/management/lecturers/reset-passwords-all', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ password })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          Swal.fire('Updated!', data.message, 'success');
+        } else {
+          Swal.fire('Error!', data.message || 'Failed to update passwords', 'error');
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        Swal.fire('Error!', 'An unexpected error occurred.', 'error');
+      });
     });
   }
 
@@ -143,6 +238,75 @@
     component.selectedLecturer = { id: lecturerId, name: lecturerName };
     component.resetSubjectAssignment();
     component.showSubjectAssignmentModal = true;
+  }
+
+  // Unassign a subject from a lecturer
+  function unassignSubject(lecturerId, lecturerName, subjectId, subjectLabel) {
+    Swal.fire({
+      title: 'Remove subject?',
+      text: `Unassign ${subjectLabel} from ${lecturerName}?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#000000',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, remove'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const formData = new FormData();
+        formData.append('csrf_token', csrfToken);
+        formData.append('subject_id', subjectId);
+        fetch(`/management/lecturers/${lecturerId}/unassign-subject`, {
+          method: 'POST',
+          body: formData,
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) {
+            Swal.fire('Removed!', data.message, 'success').then(() => window.location.reload());
+          } else {
+            Swal.fire('Error!', data.message, 'error');
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          Swal.fire('Error!', 'Failed to unassign subject.', 'error');
+        });
+      }
+    });
+  }
+
+  // Show all assigned subjects with remove controls
+  function showAllAssignedSubjects(lecturerId, lecturerName) {
+    const holder = document.getElementById(`assigned-subjects-${lecturerId}`);
+    if (!holder) return;
+    let subjects = [];
+    try { subjects = JSON.parse(holder.dataset.subjects || '[]'); } catch (_) { subjects = []; }
+    const listHtml = subjects.length ? subjects.map(s => `
+      <div class="flex items-center justify-between px-3 py-2 border-b last:border-b-0">
+        <div class="text-sm"><span class="font-medium">${s.name}</span> <span class="text-gray-500">(${s.code}) - ${s.course_name || 'N/A'}</span></div>
+        <button type="button" class="unassign-btn text-red-600 hover:text-red-800 text-sm" data-sid="${s.id}" data-sname="${s.name} (${s.code}) - ${s.course_name || 'N/A'}">Remove</button>
+      </div>
+    `).join('') : '<div class="px-3 py-2 text-sm text-gray-500">No subjects assigned</div>';
+
+    Swal.fire({
+      title: `Assigned Subjects - ${lecturerName}`,
+      html: `<div class=\"text-left border rounded overflow-hidden\">${listHtml}</div>`,
+      showConfirmButton: false,
+      showCancelButton: true,
+      cancelButtonText: 'Close'
+    }).then(() => {});
+
+    // Attach handlers after modal opens
+    setTimeout(() => {
+      document.querySelectorAll('.unassign-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const sid = e.currentTarget.getAttribute('data-sid');
+          const sname = e.currentTarget.getAttribute('data-sname');
+          unassignSubject(lecturerId, lecturerName, sid, sname);
+        });
+      });
+    }, 0);
   }
 </script>
 {% endblock %}
@@ -293,7 +457,7 @@
 <div class="min-h-screen bg-gray-50">
     <!-- Navigation -->
     <nav class="bg-white shadow-sm border-b border-gray-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center space-x-4">
                     <a href="{{ url_for('management.dashboard') }}" class="text-sm text-gray-600 hover:text-black">← Dashboard</a>
@@ -310,7 +474,7 @@
         </div>
     </nav>
 
-    <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <div class="max-w-full mx-auto py-6 sm:px-6 lg:px-8">
         <!-- Table Header with Action Buttons -->
         <div class="bg-white shadow rounded-lg mb-6">
             <div class="px-4 py-4 sm:px-6 flex justify-between items-center">
@@ -326,6 +490,12 @@
                     <button @click="showBulkUploadModal = true" type="button" 
                             class="bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black">
                         Bulk Upload
+                    </button>
+
+                    <!-- Reset All Passwords with Custom Password -->
+                    <button type="button" onclick="resetAllLecturersWithCustomPassword()"
+                            class="bg-white text-black border border-black px-4 py-2 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black">
+                        Set Password For All
                     </button>
                 </div>
             </div>
@@ -567,7 +737,7 @@
         </div>
 
         <!-- Lecturers List -->
-        <div class="bg-white shadow overflow-hidden sm:rounded-md">
+        <div class="bg-white shadow overflow-x-auto sm:rounded-md">
             <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
                 <h3 class="text-lg leading-6 font-medium text-gray-900">
                     Lecturers List
@@ -582,7 +752,7 @@
             </div>
             
             {% if lecturers %}
-            <table class="min-w-full divide-y divide-gray-200">
+            <table class="min-w-max w-full divide-y divide-gray-200">
                 <thead>
                     <tr>
                         <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lecturer Info</th>
@@ -618,16 +788,22 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {% set assigned_subjects = lecturer.get_assigned_subjects() %}
                             {% if assigned_subjects %}
-                                <div class="space-y-1">
+                                <div id="assigned-subjects-{{ lecturer.id }}" class="space-y-1" data-subjects='[{% for s in assigned_subjects %}{"id":{{ s.id }},"name":"{{ s.name }}","code":"{{ s.code }}","course_name":"{{ s.course.name if s.course else '' }}"}{% if not loop.last %},{% endif %}{% endfor %}]'>
                                     {% for subject in assigned_subjects[:2] %}
-                                    <div class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                    <div class="inline-flex items-center text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
                                         {{ subject.name }} ({{ subject.code }})
+                                        <button type="button"
+                                                class="ml-1 text-blue-700 hover:text-blue-900"
+                                                onclick="unassignSubject({{ lecturer.id }}, '{{ lecturer.name }}', {{ subject.id }}, '{{ subject.name }} ({{ subject.code }})')"
+                                        >
+                                            ×
+                                        </button>
                                     </div>
                                     {% endfor %}
                                     {% if assigned_subjects|length > 2 %}
-                                    <div class="text-xs text-gray-500">
+                                    <button type="button" class="text-xs text-gray-600 underline ml-1" onclick="showAllAssignedSubjects({{ lecturer.id }}, '{{ lecturer.name }}')">
                                         +{{ assigned_subjects|length - 2 }} more
-                                    </div>
+                                    </button>
                                     {% endif %}
                                 </div>
                             {% else %}
@@ -659,7 +835,7 @@
                                 <span class="text-gray-400">|</span>
                                 <button onclick="resetLecturerPassword({{ lecturer.id }}, '{{ lecturer.name }}')" 
                                         class="text-blue-600 hover:text-blue-800">
-                                    Reset Password
+                                        Change Login Details
                                 </button>
                             </div>
                         </td>

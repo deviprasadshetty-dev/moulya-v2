@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}My Subjects - Moulya College Management{% endblock %}
+{% block title %}My Subjects - Academic Record Management System{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50">
@@ -24,7 +24,7 @@
                 
                 <!-- Desktop menu -->
                 <div class="hidden md:flex items-center space-x-4">
-                    <span class="text-sm text-gray-700">{{ current_user.username }}</span>
+                    <span class="text-sm text-gray-700">{{ current_user.name or current_user.username }}</span>
                     <form method="POST" action="{{ url_for('auth.logout') }}" class="inline">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <button type="submit" class="text-sm text-gray-600 hover:text-black">Logout</button>
@@ -35,7 +35,7 @@
             <!-- Mobile menu -->
             <div id="mobile-menu" class="md:hidden hidden border-t border-gray-200 py-4">
                 <div class="space-y-2">
-                    <div class="text-sm text-gray-700 px-2">{{ current_user.username }}</div>
+                    <div class="text-sm text-gray-700 px-2">{{ current_user.name or current_user.username }}</div>
                     <form method="POST" action="{{ url_for('auth.logout') }}" class="px-2">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <button type="submit" class="w-full text-left py-2 text-sm text-gray-600 hover:text-black">Logout</button>

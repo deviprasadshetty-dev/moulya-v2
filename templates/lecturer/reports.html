@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ subject.name }} - Reports - Moulya College Management{% endblock %}
+{% block title %}{{ subject.name }} - Reports - Academic Record Management System{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50">
@@ -24,7 +24,7 @@
                 
                 <!-- Desktop menu -->
                 <div class="hidden md:flex items-center space-x-4">
-                    <span class="text-sm text-gray-700">{{ current_user.username }}</span>
+                    <span class="text-sm text-gray-700">{{ current_user.name or current_user.username }}</span>
                     <form method="POST" action="{{ url_for('auth.logout') }}" class="inline">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <button type="submit" class="text-sm text-gray-600 hover:text-black">Logout</button>
@@ -35,7 +35,7 @@
             <!-- Mobile menu -->
             <div id="mobile-menu" class="md:hidden hidden border-t border-gray-200 py-4">
                 <div class="space-y-2">
-                    <div class="text-sm text-gray-700 px-2">{{ current_user.username }}</div>
+                    <div class="text-sm text-gray-700 px-2">{{ current_user.name or current_user.username }}</div>
                     <form method="POST" action="{{ url_for('auth.logout') }}" class="px-2">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <button type="submit" class="w-full text-left py-2 text-sm text-gray-600 hover:text-black">Logout</button>
@@ -68,11 +68,15 @@
             </div>
         </div>
 
-        <div class="space-y-6 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0">
+        <div class="space-y-6">
             <!-- Attendance Report -->
             <div id="attendance-content" class="tab-content bg-white shadow rounded-lg">
-                <div class="px-4 py-4 sm:py-5 sm:px-6">
+                <div class="px-4 py-4 sm:py-5 sm:px-6 flex items-center justify-between">
                     <h3 class="text-base sm:text-lg leading-6 font-medium text-gray-900">Attendance Report</h3>
+                    <div class="no-print flex space-x-2">
+                        <a href="{{ url_for('lecturer.export_subject_attendance_report_excel', subject_id=subject.id) }}" class="inline-flex items-center justify-center bg-gray-600 text-white py-1.5 px-3 rounded-md hover:bg-gray-700 text-xs sm:text-sm">Export Excel</a>
+                        <a href="{{ url_for('lecturer.export_subject_attendance_report_pdf', subject_id=subject.id) }}" class="inline-flex items-center justify-center bg-red-600 text-white py-1.5 px-3 rounded-md hover:bg-red-700 text-xs sm:text-sm">Export PDF</a>
+                    </div>
                 </div>
                 
                 {% if attendance_report %}
@@ -172,9 +176,13 @@
             </div>
 
             <!-- Marks Report -->
-            <div id="marks-content" class="tab-content hidden lg:block bg-white shadow rounded-lg">
-                <div class="px-4 py-4 sm:py-5 sm:px-6">
+            <div id="marks-content" class="tab-content hidden bg-white shadow rounded-lg">
+                <div class="px-4 py-4 sm:py-5 sm:px-6 flex items-center justify-between">
                     <h3 class="text-base sm:text-lg leading-6 font-medium text-gray-900">Marks Report</h3>
+                    <div class="no-print flex space-x-2">
+                        <a href="{{ url_for('lecturer.export_subject_marks_report_excel', subject_id=subject.id) }}" class="inline-flex items-center justify-center bg-gray-600 text-white py-1.5 px-3 rounded-md hover:bg-gray-700 text-xs sm:text-sm">Export Excel</a>
+                        <a href="{{ url_for('lecturer.export_subject_marks_report_pdf', subject_id=subject.id) }}" class="inline-flex items-center justify-center bg-red-600 text-white py-1.5 px-3 rounded-md hover:bg-red-700 text-xs sm:text-sm">Export PDF</a>
+                    </div>
                 </div>
                 
                 {% if marks_report %}
@@ -205,9 +213,45 @@
                                     {% endif %}
                                 </div>
                             </div>
-                            <div class="mt-2 text-center">
-                                <div class="text-lg font-medium text-gray-900">{{ record.overall_percentage }}%</div>
-                                <div class="text-xs text-gray-500">Overall Percentage</div>
+                            <div class="mt-2">
+                                <!-- Internal Assessment Marks -->
+                                {% if has_internal1 or has_internal2 %}
+                                <div class="grid grid-cols-{% if has_internal1 and has_internal2 %}3{% elif has_internal1 or has_internal2 %}2{% else %}1{% endif %} gap-2 text-xs text-gray-600 mb-2">
+                                    {% if has_internal1 %}
+                                    <div class="text-center">
+                                        <div class="font-medium text-gray-900">
+                                            {% if record.internal1_marks %}
+                                                {{ record.internal1_marks.obtained }}/{{ record.internal1_marks.max }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </div>
+                                        <div>Internal 1</div>
+                                    </div>
+                                    {% endif %}
+                                    {% if has_internal2 %}
+                                    <div class="text-center">
+                                        <div class="font-medium text-gray-900">
+                                            {% if record.internal2_marks %}
+                                                {{ record.internal2_marks.obtained }}/{{ record.internal2_marks.max }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </div>
+                                        <div>Internal 2</div>
+                                    </div>
+                                    {% endif %}
+                                    <div class="text-center">
+                                        <div class="font-medium text-gray-900">{{ record.overall_percentage }}%</div>
+                                        <div>Overall</div>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <div class="text-center">
+                                    <div class="text-lg font-medium text-gray-900">{{ record.overall_percentage }}%</div>
+                                    <div class="text-xs text-gray-500">Overall Percentage</div>
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
                         {% endfor %}
@@ -220,6 +264,12 @@
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                                {% if has_internal1 %}
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Internal 1</th>
+                                {% endif %}
+                                {% if has_internal2 %}
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Internal 2</th>
+                                {% endif %}
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Overall %</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             </tr>
@@ -231,6 +281,26 @@
                                     <div class="text-sm font-medium text-gray-900">{{ record.student.name }}</div>
                                     <div class="text-xs text-gray-500">{{ record.student.roll_number }}</div>
                                 </td>
+                                {% if has_internal1 %}
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                    {% if record.internal1_marks %}
+                                        {{ record.internal1_marks.obtained }}/{{ record.internal1_marks.max }}
+                                        <div class="text-xs text-gray-500">({{ record.internal1_marks.percentage }}%)</div>
+                                    {% else %}
+                                        <span class="text-gray-400">-</span>
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                                {% if has_internal2 %}
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                    {% if record.internal2_marks %}
+                                        {{ record.internal2_marks.obtained }}/{{ record.internal2_marks.max }}
+                                        <div class="text-xs text-gray-500">({{ record.internal2_marks.percentage }}%)</div>
+                                    {% else %}
+                                        <span class="text-gray-400">-</span>
+                                    {% endif %}
+                                </td>
+                                {% endif %}
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ record.overall_percentage }}%</td>
                                 <td class="px-4 py-3 whitespace-nowrap">
                                     {% if record.has_deficiency %}
@@ -271,8 +341,11 @@
                    class="inline-flex items-center justify-center bg-white text-black border border-black py-2 px-4 rounded-md hover:bg-gray-50 active:bg-gray-100 text-sm">
                     Manage Marks
                 </a>
-                <button onclick="window.print()" class="inline-flex items-center justify-center bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800 active:bg-gray-900 text-sm">
-                    Print Report
+                <button onclick="printReport('attendance')" class="inline-flex items-center justify-center bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800 active:bg-gray-900 text-sm">
+                    Print Attendance
+                </button>
+                <button onclick="printReport('marks')" class="inline-flex items-center justify-center bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800 active:bg-gray-900 text-sm">
+                    Print Marks
                 </button>
             </div>
         </div>
@@ -304,6 +377,30 @@ function showTab(tabName) {
     const activeTab = document.getElementById(tabName + '-tab');
     activeTab.classList.remove('border-transparent', 'text-gray-500');
     activeTab.classList.add('border-black', 'text-black');
+}
+
+// Print only the requested section and restore previous tab after printing
+function printReport(which) {
+    const attendance = document.getElementById('attendance-content');
+    const marks = document.getElementById('marks-content');
+    const wasAttendanceHidden = attendance.classList.contains('hidden');
+    const wasMarksHidden = marks.classList.contains('hidden');
+
+    if (which === 'attendance') {
+        attendance.classList.remove('hidden');
+        marks.classList.add('hidden');
+    } else {
+        marks.classList.remove('hidden');
+        attendance.classList.add('hidden');
+    }
+
+    // Use print after layout updates
+    setTimeout(() => {
+        window.print();
+        // Restore previous states
+        if (wasAttendanceHidden) attendance.classList.add('hidden'); else attendance.classList.remove('hidden');
+        if (wasMarksHidden) marks.classList.add('hidden'); else marks.classList.remove('hidden');
+    }, 0);
 }
 
 // Search functionality for attendance cards
@@ -355,8 +452,13 @@ document.addEventListener('click', function(event) {
 @media print {
     nav, .no-print, .tab-button { display: none !important; }
     body { background: white !important; }
-    .tab-content { display: block !important; }
-    .hidden { display: block !important; }
+    /* Print ONLY the currently visible section */
+    .hidden { display: none !important; }
+    .tab-content { display: block; }
+    /* Prefer desktop tables in print */
+    .sm\:hidden { display: none !important; }
+    .sm\:block { display: block !important; }
+    .overflow-x-auto { overflow: visible !important; }
 }
 </style>
 {% endblock %}

@@ -17,7 +17,15 @@ class AuthService:
     def authenticate_management(username, password):
         """Authenticate management user"""
         try:
-            user = Management.query.filter_by(username=username, is_active=True).first()
+            # Case-insensitive username match
+            from sqlalchemy import func
+            normalized = (username or '').strip()
+            user = (
+                Management.query
+                .filter(func.lower(Management.username) == func.lower(normalized))
+                .filter_by(is_active=True)
+                .first()
+            )
             
             if user and user.check_password(password):
                 user.update_last_login()
@@ -32,10 +40,41 @@ class AuthService:
     def authenticate_lecturer(username, password):
         """Authenticate lecturer user"""
         try:
-            user = Lecturer.query.filter_by(username=username, is_active=True).first()
+            # Case-insensitive username match
+            from sqlalchemy import func
+            normalized = (username or '').strip()
+            user = (
+                Lecturer.query
+                .filter(func.lower(Lecturer.username) == func.lower(normalized))
+                .filter_by(is_active=True)
+                .first()
+            )
             
             if user and user.check_password(password):
                 user.update_last_login()
+                return True, user, "Login successful"
+            
+            return False, None, "Invalid username or password"
+        
+        except Exception as e:
+            return False, None, f"Authentication error: {str(e)}"
+    
+    @staticmethod
+    def authenticate_student(username, password):
+        """Authenticate student user"""
+        try:
+            # Case-insensitive username match
+            from sqlalchemy import func
+            from models.student import Student
+            normalized = (username or '').strip()
+            user = (
+                Student.query
+                .filter(func.lower(Student.username) == func.lower(normalized))
+                .filter_by(is_active=True)
+                .first()
+            )
+            
+            if user and user.check_password(password):
                 return True, user, "Login successful"
             
             return False, None, "Invalid username or password"
@@ -51,13 +90,16 @@ class AuthService:
             if manual_username:
                 username = manual_username
             else:
-                username = Lecturer.generate_username(name, lecturer_id)
+                # Use lecturer_id as the base username (sanitized to allowed characters)
+                import re
+                base_username = re.sub(r'[^A-Za-z0-9_]', '_', str(lecturer_id).strip())
+                username = base_username.lower() or 'lecturer'
                 
                 # Ensure username is unique
                 counter = 1
                 original_username = username
                 while Lecturer.query.filter_by(username=username).first():
-                    username = f"{original_username}{counter}"
+                    username = f"{original_username}_{counter}"
                     counter += 1
             
             # Generate password
@@ -95,6 +137,9 @@ class AuthService:
                 user = Management.query.get(user_id)
             elif user_type == 'lecturer':
                 user = Lecturer.query.get(user_id)
+            elif user_type == 'student':
+                from models.student import Student
+                user = Student.query.get(user_id)
             else:
                 return False, "Invalid user type"
             
@@ -208,6 +253,9 @@ class AuthService:
                 user = Management.query.get(user_id)
             elif user_type == 'lecturer':
                 user = Lecturer.query.get(user_id)
+            elif user_type == 'student':
+                from models.student import Student
+                user = Student.query.get(user_id)
             else:
                 return None, "Invalid user type"
             
@@ -250,6 +298,11 @@ class SessionManager:
     def is_lecturer(session):
         """Check if current user is lecturer"""
         return session.get('user_type') == 'lecturer'
+    
+    @staticmethod
+    def is_student(session):
+        """Check if current user is student"""
+        return session.get('user_type') == 'student'
     
     @staticmethod
     def get_current_user_id(session):

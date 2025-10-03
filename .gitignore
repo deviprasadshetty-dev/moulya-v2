@@ -33,8 +33,10 @@ MANIFEST
 *.log
 
 # Database
+instance/
 instance/moulya_college.db
 instance/*.db
+instance/
 
 # Temp files
 *.tmp

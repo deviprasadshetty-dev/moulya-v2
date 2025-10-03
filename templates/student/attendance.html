@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance - Student Portal{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="{{ url_for('student.dashboard') }}" class="text-gray-600 hover:text-black mr-4">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                    </a>
+                    <h1 class="text-lg sm:text-xl font-semibold text-gray-900">Attendance Overview</h1>
+                </div>
+
+                <!-- Mobile menu button -->
+                <div class="md:hidden">
+                    <button onclick="toggleMobileMenu()" class="text-gray-600 hover:text-black focus:outline-none">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Desktop menu -->
+                <div class="hidden md:flex items-center space-x-4">
+                    <span class="text-sm text-gray-700">{{ current_user.name or current_user.username }}</span>
+                    <form method="POST" action="{{ url_for('auth.logout') }}" class="inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <button type="submit" class="text-sm text-gray-600 hover:text-black">Logout</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Mobile menu -->
+            <div id="mobile-menu" class="md:hidden hidden border-t border-gray-200 py-4">
+                <div class="space-y-2">
+                    <div class="text-sm text-gray-700 px-2">{{ current_user.name or current_user.username }}</div>
+                    <form method="POST" action="{{ url_for('auth.logout') }}" class="px-2">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <button type="submit" class="w-full text-left py-2 text-sm text-gray-600 hover:text-black">Logout</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <!-- Overall Attendance Summary -->
+        <div class="bg-white shadow rounded-lg mb-6">
+            <div class="px-4 py-5 sm:p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-900">Overall Attendance</h2>
+                        <p class="text-sm text-gray-600">Your attendance across all subjects</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-3xl font-bold text-blue-600">{{ "%.1f"|format(overall_attendance) }}%</div>
+                        <div class="text-xs text-gray-500">Attendance Rate</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Subject-wise Attendance -->
+        {% if attendance_data %}
+        <div class="bg-white shadow overflow-hidden sm:rounded-md">
+            <div class="px-4 py-5 sm:px-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Subject-wise Attendance</h3>
+                <p class="mt-1 text-sm text-gray-600">Detailed attendance breakdown for each subject</p>
+            </div>
+            <ul class="divide-y divide-gray-200">
+                {% for data in attendance_data %}
+                <li class="px-4 py-4 sm:px-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                        <div class="min-w-0 flex-1">
+                            <p class="text-sm font-medium text-gray-900 truncate">{{ data.subject.name }}</p>
+                            <p class="text-xs sm:text-sm text-gray-500">{{ data.subject.code }}</p>
+                        </div>
+                        <div class="flex items-center justify-between sm:justify-end sm:space-x-6">
+                            <div class="text-center">
+                                <div class="text-lg font-medium {% if data.percentage >= 75 %}text-green-600{% elif data.percentage >= 65 %}text-yellow-600{% else %}text-red-600{% endif %}">{{ "%.1f"|format(data.percentage) }}%</div>
+                                <div class="text-xs text-gray-500">{{ data.present_classes }}/{{ data.total_classes }} classes</div>
+                            </div>
+                            <div class="flex space-x-2">
+                                <a href="{{ url_for('student.subject_details', subject_id=data.subject.id) }}" 
+                                   class="inline-flex items-center px-2 py-1 bg-blue-600 text-white rounded text-xs font-medium hover:bg-blue-700 active:bg-blue-800">
+                                    View Details
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% if data.recent_records %}
+                    <div class="mt-3 sm:mt-4">
+                        <p class="text-xs text-gray-500 mb-2">Recent Records:</p>
+                        <div class="flex flex-wrap gap-1">
+                            {% for record in data.recent_records[:5] %}
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {% if record.status == 'present' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                {{ record.date.strftime('%m/%d') if record.date else 'N/A' }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% else %}
+        <div class="bg-white shadow rounded-lg">
+            <div class="px-4 py-5 sm:px-6 text-center">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No attendance data</h3>
+                <p class="mt-1 text-sm text-gray-500">No attendance records have been found for your subjects.</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function toggleMobileMenu() {
+    const menu = document.getElementById('mobile-menu');
+    menu.classList.toggle('hidden');
+}
+
+// Close mobile menu when clicking outside
+document.addEventListener('click', function(event) {
+    const menu = document.getElementById('mobile-menu');
+    const button = event.target.closest('button[onclick="toggleMobileMenu()"]');
+    
+    if (!button && !menu.contains(event.target)) {
+        menu.classList.add('hidden');
+    }
+});
+</script>
+{% endblock %}

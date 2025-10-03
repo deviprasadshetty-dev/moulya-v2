@@ -72,8 +72,15 @@ class Lecturer(db.Model):
         db.session.commit()
     
     def get_assigned_subjects(self):
-        """Get all subjects assigned to this lecturer"""
-        return [assignment.subject for assignment in self.subject_assignments]
+        """Get subjects actively assigned to this lecturer for the current academic year"""
+        from datetime import datetime
+        current_year = datetime.now().year
+        active_assignments_current_year = (
+            self.subject_assignments
+                .filter_by(academic_year=current_year, is_active=True)
+                .all()
+        )
+        return [assignment.subject for assignment in active_assignments_current_year]
     
     def is_assigned_to_subject(self, subject_id):
         """Check if lecturer is assigned to a specific subject"""

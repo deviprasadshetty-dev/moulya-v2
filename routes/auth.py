@@ -19,7 +19,7 @@ def index():
         elif SessionManager.is_lecturer(session):
             return redirect(url_for('lecturer.dashboard'))
     
-    return render_template('auth/index.html')
+    return render_template('auth/index.html', hide_header=True)
 
 @auth_bp.route('/management/login', methods=['GET', 'POST'])
 def management_login():
@@ -35,13 +35,13 @@ def management_login():
         # Validate input
         if not username or not password:
             flash('Username and password are required', 'error')
-            return render_template('auth/management_login.html')
+            return render_template('auth/management_login.html', hide_header=True)
         
         # Validate username format
         is_valid, message = validate_username(username)
         if not is_valid:
             flash(message, 'error')
-            return render_template('auth/management_login.html')
+            return render_template('auth/management_login.html', hide_header=True)
         
         # Authenticate user
         success, user, message = AuthService.authenticate_management(username, password)
@@ -54,7 +54,7 @@ def management_login():
         else:
             flash(message, 'error')
     
-    return render_template('auth/management_login.html')
+    return render_template('auth/management_login.html', hide_header=True)
 
 @auth_bp.route('/lecturer/login', methods=['GET', 'POST'])
 def lecturer_login():
@@ -70,13 +70,13 @@ def lecturer_login():
         # Validate input
         if not username or not password:
             flash('Username and password are required', 'error')
-            return render_template('auth/lecturer_login.html')
+            return render_template('auth/lecturer_login.html', hide_header=True)
         
         # Validate username format
         is_valid, message = validate_username(username)
         if not is_valid:
             flash(message, 'error')
-            return render_template('auth/lecturer_login.html')
+            return render_template('auth/lecturer_login.html', hide_header=True)
         
         # Authenticate user
         success, user, message = AuthService.authenticate_lecturer(username, password)
@@ -89,7 +89,42 @@ def lecturer_login():
         else:
             flash(message, 'error')
     
-    return render_template('auth/lecturer_login.html')
+    return render_template('auth/lecturer_login.html', hide_header=True)
+
+@auth_bp.route('/student/login', methods=['GET', 'POST'])
+def student_login():
+    """Student login page and handler"""
+    # Redirect if already logged in as student
+    if SessionManager.is_authenticated(session) and SessionManager.is_student(session):
+        return redirect(url_for('student.dashboard'))
+    
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+        
+        # Validate input
+        if not username or not password:
+            flash('Username and password are required', 'error')
+            return render_template('auth/student_login.html', hide_header=True)
+        
+        # Validate username format
+        is_valid, message = validate_username(username)
+        if not is_valid:
+            flash(message, 'error')
+            return render_template('auth/student_login.html', hide_header=True)
+        
+        # Authenticate user
+        success, user, message = AuthService.authenticate_student(username, password)
+        
+        if success:
+            # Create session
+            SessionManager.create_session(session, 'student', user.id, user.username)
+            flash('Login successful', 'success')
+            return redirect(url_for('student.dashboard'))
+        else:
+            flash(message, 'error')
+    
+    return render_template('auth/student_login.html', hide_header=True)
 
 @auth_bp.route('/logout', methods=['POST'])
 def logout():
@@ -103,6 +138,8 @@ def logout():
         return redirect(url_for('auth.management_login'))
     elif user_type == 'lecturer':
         return redirect(url_for('auth.lecturer_login'))
+    elif user_type == 'student':
+        return redirect(url_for('auth.student_login'))
     else:
         return redirect(url_for('auth.index'))
 
@@ -169,6 +206,9 @@ def login_required(user_type=None):
                 elif user_type == 'lecturer' and not SessionManager.is_lecturer(session):
                     flash('Access denied. Lecturer login required.', 'error')
                     return redirect(url_for('auth.lecturer_login'))
+                elif user_type == 'student' and not SessionManager.is_student(session):
+                    flash('Access denied. Student login required.', 'error')
+                    return redirect(url_for('auth.student_login'))
             
             return f(*args, **kwargs)
         
@@ -180,9 +220,29 @@ def login_required(user_type=None):
 @auth_bp.app_context_processor
 def inject_user():
     """Inject user information into template context"""
+    session_info = SessionManager.get_session_info(session)
+    # Enrich with lecturer name when available
+    if session_info and session_info.get('user_type') == 'lecturer':
+        try:
+            from services.auth_service import AuthService
+            user_obj, _ = AuthService.get_user_info('lecturer', session_info.get('user_id'))
+            if user_obj and getattr(user_obj, 'name', None):
+                session_info['name'] = user_obj.name
+        except Exception:
+            pass
+    # Enrich with student name when available
+    elif session_info and session_info.get('user_type') == 'student':
+        try:
+            from services.auth_service import AuthService
+            user_obj, _ = AuthService.get_user_info('student', session_info.get('user_id'))
+            if user_obj and getattr(user_obj, 'name', None):
+                session_info['name'] = user_obj.name
+        except Exception:
+            pass
     return {
-        'current_user': SessionManager.get_session_info(session),
+        'current_user': session_info,
         'is_authenticated': SessionManager.is_authenticated(session),
         'is_management': SessionManager.is_management(session),
-        'is_lecturer': SessionManager.is_lecturer(session)
+        'is_lecturer': SessionManager.is_lecturer(session),
+        'is_student': SessionManager.is_student(session)
     }

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Course Overview Report - {{ report.course.name }} - Moulya College Management{% endblock %}
+{% block title %}Course Overview Report - {{ report.course.name }} - Academic Record Management System{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50">
@@ -12,12 +12,16 @@
                     <a href="{{ url_for('management.reports_dashboard') }}" class="text-sm text-gray-600 hover:text-black">← Reports Dashboard</a>
                     <h1 class="text-xl font-semibold text-gray-900">Course Overview Report</h1>
                 </div>
-                <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2">
                     <a href="{{ url_for('management.export_course_overview_report', course_id=report.course.id) }}" 
                        class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700">
                         📥 Export Excel
                     </a>
-                    <span class="text-sm text-gray-700">{{ current_user.username }}</span>
+                    <a href="{{ url_for('management.export_course_overview_report_pdf', course_id=report.course.id) }}"
+                       class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700">
+                        🧾 Export PDF
+                    </a>
+                    <span class="text-sm text-gray-700 ml-2">{{ current_user.username }}</span>
                 </div>
             </div>
         </div>
@@ -43,6 +47,52 @@
                     <div class="text-center">
                         <div class="text-2xl font-bold text-gray-900">{{ report.course.duration_years }}</div>
                         <div class="text-sm text-gray-500">Duration (Years)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Course Performance Summary -->
+        <div class="bg-white shadow rounded-lg mb-6">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Course Performance Summary</h3>
+            </div>
+            <div class="px-6 py-4">
+                {% set total_avg_marks = 0 %}
+                {% set total_avg_attendance = 0 %}
+                {% set subjects_with_data = 0 %}
+                {% for subject in report.subjects %}
+                    {% if subject.marks_statistics.average_marks > 0 or subject.attendance_statistics.average_attendance > 0 %}
+                        {% set total_avg_marks = total_avg_marks + subject.marks_statistics.average_marks %}
+                        {% set total_avg_attendance = total_avg_attendance + subject.attendance_statistics.average_attendance %}
+                        {% set subjects_with_data = subjects_with_data + 1 %}
+                    {% endif %}
+                {% endfor %}
+                {% set course_avg_marks = (total_avg_marks / subjects_with_data) | round(2) if subjects_with_data > 0 else 0 %}
+                {% set course_avg_attendance = (total_avg_attendance / subjects_with_data) | round(2) if subjects_with_data > 0 else 0 %}
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="text-center p-4 bg-gray-50 rounded">
+                        <div class="text-xl font-bold text-gray-900">{{ course_avg_marks }}%</div>
+                        <div class="text-sm text-gray-500">Course Average Marks</div>
+                        {% if course_avg_marks >= 70 %}
+                        <div class="text-xs text-green-600 mt-1">Excellent Performance</div>
+                        {% elif course_avg_marks >= 50 %}
+                        <div class="text-xs text-blue-600 mt-1">Good Performance</div>
+                        {% else %}
+                        <div class="text-xs text-red-600 mt-1">Needs Improvement</div>
+                        {% endif %}
+                    </div>
+                    <div class="text-center p-4 bg-gray-50 rounded">
+                        <div class="text-xl font-bold text-gray-900">{{ course_avg_attendance }}%</div>
+                        <div class="text-sm text-gray-500">Course Average Attendance</div>
+                        {% if course_avg_attendance >= 80 %}
+                        <div class="text-xs text-green-600 mt-1">Excellent Attendance</div>
+                        {% elif course_avg_attendance >= 70 %}
+                        <div class="text-xs text-blue-600 mt-1">Good Attendance</div>
+                        {% else %}
+                        <div class="text-xs text-red-600 mt-1">Needs Improvement</div>
+                        {% endif %}
                     </div>
                 </div>
             </div>

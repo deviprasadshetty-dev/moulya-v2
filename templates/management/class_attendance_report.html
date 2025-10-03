@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Class Attendance Report - {{ report.subject.name }} - Moulya College Management{% endblock %}
+{% block title %}Class Attendance Report - {{ report.subject.name }} - Academic Record Management System{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50">
@@ -12,12 +12,16 @@
                     <a href="{{ url_for('management.reports_dashboard') }}" class="text-sm text-gray-600 hover:text-black">← Reports Dashboard</a>
                     <h1 class="text-xl font-semibold text-gray-900">Class Attendance Report</h1>
                 </div>
-                <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2">
                     <a href="{{ url_for('management.export_class_attendance_report', subject_id=report.subject.id, month=report.month, year=report.year) }}" 
                        class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700">
                         📥 Export Excel
                     </a>
-                    <span class="text-sm text-gray-700">{{ current_user.username }}</span>
+                    <a href="{{ url_for('management.export_class_attendance_report_pdf', subject_id=report.subject.id, month=report.month, year=report.year) }}"
+                       class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700">
+                        🧾 Export PDF
+                    </a>
+                    <span class="text-sm text-gray-700 ml-2">{{ current_user.username }}</span>
                 </div>
             </div>
         </div>
@@ -28,7 +32,14 @@
         <div class="bg-white shadow rounded-lg mb-6">
             <div class="px-6 py-4 border-b border-gray-200">
                 <h2 class="text-lg font-semibold text-gray-900">{{ report.subject.name }} ({{ report.subject.code }})</h2>
-                <p class="text-sm text-gray-600">{{ report.subject.course }} - Year {{ report.subject.year }}, Semester {{ report.subject.semester }}</p>
+                <p class="text-sm text-gray-600">
+                    {{ report.subject.course_display or report.subject.course }}
+                    {% if report.subject.section %}- Section {{ report.subject.section|upper }}{% endif %}
+                    - Year {{ report.subject.year }}, Semester {{ report.subject.semester }}
+                </p>
+                {% if report.subject.lecturers and report.subject.lecturers|length > 0 %}
+                <p class="text-sm text-gray-600 mt-1">Faculty: {{ report.subject.lecturers|join(', ') }}</p>
+                {% endif %}
                 <p class="text-sm text-blue-600">Period: {{ report.month }} {{ report.year }}</p>
             </div>
         </div>
@@ -56,9 +67,30 @@
                         <div class="text-2xl font-bold text-gray-900">{{ report.statistics.students_with_good_attendance }}</div>
                         <div class="text-sm text-gray-500">Good Attendance (≥75%)</div>
                     </div>
+                </div>
+                <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="text-center">
-                        <div class="text-2xl font-bold text-gray-900">{{ report.statistics.students_with_poor_attendance }}</div>
+                        <div class="text-xl font-bold text-gray-900">{{ report.statistics.students_with_poor_attendance }}</div>
                         <div class="text-sm text-gray-500">Poor Attendance (<50%)</div>
+                    </div>
+                    <div class="text-center">
+                        {% set avg_students = report.statistics.total_students - report.statistics.students_with_good_attendance - report.statistics.students_with_poor_attendance %}
+                        <div class="text-xl font-bold text-gray-900">{{ avg_students }}</div>
+                        <div class="text-sm text-gray-500">Average Attendance (50-74%)</div>
+                    </div>
+                </div>
+                {% set good_attendance_rate = (report.statistics.students_with_good_attendance / report.statistics.total_students * 100) | round(2) if report.statistics.total_students > 0 else 0 %}
+                <div class="mt-4 p-3 bg-gray-50 rounded border">
+                    <div class="text-center">
+                        <div class="text-lg font-bold text-gray-900">{{ good_attendance_rate }}%</div>
+                        <div class="text-sm text-gray-500">Students with Good Attendance</div>
+                        {% if good_attendance_rate >= 80 %}
+                        <div class="text-xs text-green-600 mt-1">Excellent Attendance</div>
+                        {% elif good_attendance_rate >= 60 %}
+                        <div class="text-xs text-blue-600 mt-1">Good Attendance</div>
+                        {% else %}
+                        <div class="text-xs text-red-600 mt-1">Needs Improvement</div>
+                        {% endif %}
                     </div>
                 </div>
             </div>

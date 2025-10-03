@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Lecturer Dashboard - Academic Record Management System{% endblock %}
+{% block title %}Student Dashboard - Academic Record Management System{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50">
@@ -9,9 +9,9 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center">
-                    <h1 class="text-lg sm:text-xl font-semibold text-gray-900">Lecturer Portal</h1>
+                    <h1 class="text-lg sm:text-xl font-semibold text-gray-900">Student Portal</h1>
                 </div>
-                
+
                 <!-- Mobile menu button -->
                 <div class="md:hidden">
                     <button onclick="toggleMobileMenu()" class="text-gray-600 hover:text-black focus:outline-none">
@@ -20,7 +20,7 @@
                         </svg>
                     </button>
                 </div>
-                
+
                 <!-- Desktop menu -->
                 <div class="hidden md:flex items-center space-x-4">
                     <span class="text-sm text-gray-700">Welcome, {{ current_user.name or current_user.username }}</span>
@@ -31,7 +31,7 @@
                     </form>
                 </div>
             </div>
-            
+
             <!-- Mobile menu -->
             <div id="mobile-menu" class="md:hidden hidden border-t border-gray-200 py-4">
                 <div class="space-y-2">
@@ -48,39 +48,24 @@
 
     <!-- Main Content -->
     <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <!-- Stats Overview -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div class="bg-white overflow-hidden shadow rounded-lg">
-                <div class="p-5">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                            </svg>
-                        </div>
-                        <div class="ml-5 w-0 flex-1">
-                            <dl>
-                                <dt class="text-sm font-medium text-gray-500 truncate">Assigned Subjects</dt>
-                                <dd class="text-lg font-medium text-gray-900">{{ stats.total_subjects or 0 }}</dd>
-                            </dl>
-                        </div>
+        <!-- Student Info -->
+        <div class="bg-white shadow rounded-lg mb-6">
+            <div class="px-4 py-5 sm:p-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h2 class="text-lg font-medium text-gray-900">{{ student.name }}</h2>
+                        <p class="text-sm text-gray-600">Roll Number: {{ student.roll_number }}</p>
+                        <p class="text-sm text-gray-600">Course: {{ student.course.name if student.course else 'N/A' }}</p>
+                        <p class="text-sm text-gray-600">Year: {{ student.academic_year }}, Semester: {{ student.current_semester }}</p>
                     </div>
-                </div>
-            </div>
-
-            <div class="bg-white overflow-hidden shadow rounded-lg">
-                <div class="p-5">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
-                            </svg>
+                    <div class="mt-4 sm:mt-0 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-blue-600">{{ "%.1f"|format(stats.overall_attendance) }}%</div>
+                            <div class="text-xs text-gray-500">Attendance</div>
                         </div>
-                        <div class="ml-5 w-0 flex-1">
-                            <dl>
-                                <dt class="text-sm font-medium text-gray-500 truncate">Total Students</dt>
-                                <dd class="text-lg font-medium text-gray-900">{{ stats.total_students or 0 }}</dd>
-                            </dl>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-green-600">{{ "%.1f"|format(stats.overall_marks) }}%</div>
+                            <div class="text-xs text-gray-500">Marks</div>
                         </div>
                     </div>
                 </div>
@@ -88,8 +73,8 @@
         </div>
 
         <!-- Quick Actions - Mobile Optimized -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
-            <a href="{{ url_for('lecturer.subjects') }}" class="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow active:bg-gray-50">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+            <a href="{{ url_for('student.subjects') }}" class="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow active:bg-gray-50">
                 <div class="p-4 sm:p-6">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
@@ -99,13 +84,13 @@
                         </div>
                         <div class="ml-3 sm:ml-4 min-w-0 flex-1">
                             <h3 class="text-base sm:text-lg font-medium text-gray-900 truncate">My Subjects</h3>
-                            <p class="text-xs sm:text-sm text-gray-500">View assigned subjects</p>
+                            <p class="text-xs sm:text-sm text-gray-500">View enrolled subjects</p>
                         </div>
                     </div>
                 </div>
             </a>
 
-            <a href="{{ url_for('lecturer.attendance_shortage_report') }}" class="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow active:bg-gray-50">
+            <a href="{{ url_for('student.attendance') }}" class="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow active:bg-gray-50">
                 <div class="p-4 sm:p-6">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
@@ -115,13 +100,13 @@
                         </div>
                         <div class="ml-3 sm:ml-4 min-w-0 flex-1">
                             <h3 class="text-base sm:text-lg font-medium text-gray-900 truncate">Attendance</h3>
-                            <p class="text-xs sm:text-sm text-gray-500">View shortage reports</p>
+                            <p class="text-xs sm:text-sm text-gray-500">View attendance records</p>
                         </div>
                     </div>
                 </div>
             </a>
 
-            <a href="{{ url_for('lecturer.marks_deficiency_report') }}" class="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow active:bg-gray-50">
+            <a href="{{ url_for('student.marks') }}" class="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow active:bg-gray-50">
                 <div class="p-4 sm:p-6">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
@@ -131,42 +116,63 @@
                         </div>
                         <div class="ml-3 sm:ml-4 min-w-0 flex-1">
                             <h3 class="text-base sm:text-lg font-medium text-gray-900 truncate">Marks</h3>
-                            <p class="text-xs sm:text-sm text-gray-500">View deficiency reports</p>
+                            <p class="text-xs sm:text-sm text-gray-500">View assessment marks</p>
+                        </div>
+                    </div>
+                </div>
+            </a>
+
+            <a href="{{ url_for('student.course_details') }}" class="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow active:bg-gray-50">
+                <div class="p-4 sm:p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <svg class="h-6 w-6 sm:h-8 sm:w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-3 sm:ml-4 min-w-0 flex-1">
+                            <h3 class="text-base sm:text-lg font-medium text-gray-900 truncate">Course Details</h3>
+                            <p class="text-xs sm:text-sm text-gray-500">View course information</p>
                         </div>
                     </div>
                 </div>
             </a>
         </div>
 
-        <!-- Assigned Subjects - Mobile Optimized -->
-        {% if stats.assigned_subjects %}
-        <div class="bg-white shadow overflow-hidden sm:rounded-md mb-8">
+        <!-- Current Subjects - Mobile Optimized -->
+        {% if stats.subjects_data %}
+        <div class="bg-white shadow overflow-hidden sm:rounded-md">
             <div class="px-4 py-5 sm:px-6">
-                <h3 class="text-lg leading-6 font-medium text-gray-900">Your Assigned Subjects</h3>
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Current Semester Subjects</h3>
+                <p class="mt-1 text-sm text-gray-600">Your enrolled subjects for Year {{ student.academic_year }}, Semester {{ student.current_semester }}</p>
             </div>
             <ul class="divide-y divide-gray-200">
-                {% for subject in stats.assigned_subjects %}
+                {% for subject_data in stats.subjects_data %}
                 <li class="px-4 py-4 sm:px-6">
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
                         <div class="min-w-0 flex-1">
-                            <p class="text-sm font-medium text-gray-900 truncate">{{ subject.name }}</p>
-                            <p class="text-xs sm:text-sm text-gray-500">{{ subject.code }} | {{ subject.course.name if subject.course else 'N/A' }}</p>
-                            <p class="text-xs sm:text-sm text-gray-500">Year {{ subject.year }}, Semester {{ subject.semester }}</p>
+                            <p class="text-sm font-medium text-gray-900 truncate">{{ subject_data.subject.name }}</p>
+                            <p class="text-xs sm:text-sm text-gray-500">{{ subject_data.subject.code }}</p>
                         </div>
-                        <div class="flex items-center justify-between sm:justify-end sm:space-x-4">
-                            <span class="text-xs sm:text-sm text-gray-500">{{ subject.get_enrolled_students_count() }} students</span>
+                        <div class="flex items-center justify-between sm:justify-end sm:space-x-6">
+                            <div class="text-center">
+                                <div class="text-sm font-medium text-blue-600">{{ "%.1f"|format(subject_data.attendance_percentage) }}%</div>
+                                <div class="text-xs text-gray-500">Attendance</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-sm font-medium text-green-600">
+                                    {% if subject_data.marks_summary.internal1.obtained or subject_data.marks_summary.internal2.obtained or subject_data.marks_summary.assignment.obtained or subject_data.marks_summary.project.obtained %}
+                                        {{ "%.1f"|format((subject_data.marks_summary.internal1.obtained + subject_data.marks_summary.internal2.obtained + subject_data.marks_summary.assignment.obtained + subject_data.marks_summary.project.obtained) / (subject_data.marks_summary.internal1.max + subject_data.marks_summary.internal2.max + subject_data.marks_summary.assignment.max + subject_data.marks_summary.project.max) * 100) }}%
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </div>
+                                <div class="text-xs text-gray-500">Marks</div>
+                            </div>
                             <div class="flex space-x-2">
-                                <a href="{{ url_for('lecturer.attendance_management', subject_id=subject.id) }}" 
-                                   class="inline-flex items-center px-2 py-1 border border-gray-300 rounded text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 active:bg-gray-100">
-                                    Attendance
-                                </a>
-                                <a href="{{ url_for('lecturer.marks_management', subject_id=subject.id) }}" 
-                                   class="inline-flex items-center px-2 py-1 border border-gray-300 rounded text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 active:bg-gray-100">
-                                    Marks
-                                </a>
-                                <a href="{{ url_for('lecturer.subject_students', subject_id=subject.id) }}" 
-                                   class="inline-flex items-center px-2 py-1 bg-black text-white rounded text-xs font-medium hover:bg-gray-800 active:bg-gray-900">
-                                    Manage
+                                <a href="{{ url_for('student.subject_details', subject_id=subject_data.subject.id) }}" 
+                                   class="inline-flex items-center px-2 py-1 bg-blue-600 text-white rounded text-xs font-medium hover:bg-blue-700 active:bg-blue-800">
+                                    View Details
                                 </a>
                             </div>
                         </div>
@@ -175,31 +181,15 @@
                 {% endfor %}
             </ul>
         </div>
-        {% endif %}
-
-        <!-- Recent Activity -->
-        {% if stats.recent_attendance %}
-        <div class="bg-white shadow overflow-hidden sm:rounded-md">
-            <div class="px-4 py-5 sm:px-6">
-                <h3 class="text-lg leading-6 font-medium text-gray-900">Recent Attendance Records</h3>
+        {% else %}
+        <div class="bg-white shadow rounded-lg">
+            <div class="px-4 py-5 sm:px-6 text-center">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No subjects enrolled</h3>
+                <p class="mt-1 text-sm text-gray-500">You are not enrolled in any subjects for the current semester.</p>
             </div>
-            <ul class="divide-y divide-gray-200">
-                {% for record in stats.recent_attendance %}
-                <li class="px-4 py-4 sm:px-6">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-gray-900">{{ record.student.name if record.student else 'Unknown Student' }}</p>
-                            <p class="text-sm text-gray-500">{{ record.subject.name if record.subject else 'Unknown Subject' }} | {{ record.date.strftime('%Y-%m-%d') if record.date else 'N/A' }}</p>
-                        </div>
-                        <div>
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if record.status == 'present' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
-                                {{ record.status.title() }}
-                            </span>
-                        </div>
-                    </div>
-                </li>
-                {% endfor %}
-            </ul>
         </div>
         {% endif %}
     </div>

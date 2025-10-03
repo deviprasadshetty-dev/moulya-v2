@@ -215,3 +215,48 @@ class MonthlyAttendanceSummary(db.Model):
     def __repr__(self):
         subject_code = self.subject.code if self.subject else "Unknown"
         return f'<MonthlyAttendanceSummary {subject_code} - {self.month}/{self.year}>'
+
+
+class MonthlyStudentAttendance(db.Model):
+    """Per-student monthly attendance (supports multiple classes per day).
+
+    Stores the number of classes a student attended in a given month for a subject/lecturer.
+    This allows present count to exceed calendar days when multiple classes occur on the same day.
+    """
+    __tablename__ = 'monthly_student_attendance'
+
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    subject_id = db.Column(db.Integer, db.ForeignKey('subject.id'), nullable=False)
+    lecturer_id = db.Column(db.Integer, db.ForeignKey('lecturer.id'), nullable=False)
+    month = db.Column(db.Integer, nullable=False)
+    year = db.Column(db.Integer, nullable=False)
+    present_count = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint('student_id', 'subject_id', 'lecturer_id', 'month', 'year',
+                            name='unique_student_subject_lecturer_month_year_attendance'),
+    )
+
+    @staticmethod
+    def get_or_create(student_id, subject_id, lecturer_id, month, year):
+        rec = MonthlyStudentAttendance.query.filter_by(
+            student_id=student_id,
+            subject_id=subject_id,
+            lecturer_id=lecturer_id,
+            month=month,
+            year=year
+        ).first()
+        if not rec:
+            rec = MonthlyStudentAttendance(
+                student_id=student_id,
+                subject_id=subject_id,
+                lecturer_id=lecturer_id,
+                month=month,
+                year=year,
+                present_count=0
+            )
+            db.session.add(rec)
+        return rec

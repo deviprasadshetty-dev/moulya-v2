@@ -61,8 +61,19 @@ def create_default_management_user():
 def reset_database(app):
     """Reset database - WARNING: This will delete all data"""
     with app.app_context():
+        # Disable foreign key constraints temporarily
+        db.engine.execute("PRAGMA foreign_keys=OFF")
+        
+        # Drop all tables
         db.drop_all()
+        
+        # Re-enable foreign key constraints
+        db.engine.execute("PRAGMA foreign_keys=ON")
+        
+        # Create all tables
         db.create_all()
+        
+        # Create default management user
         create_default_management_user()
         print("Database reset completed!")
 
