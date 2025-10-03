@@ -800,6 +800,7 @@ class ManagementService:
                 except Exception as e:
                     errors.append(f"Row {row_num}: Error processing data - {str(e)}")
             if students_to_create or updates_applied > 0:
+                response_msg = []
                 try:
                     # Commit updates to existing students
                     if updates_applied > 0:
@@ -826,12 +827,12 @@ class ManagementService:
                     return True, f"Successfully {response_msg} student(s)", errors, credentials
                 except Exception as e:
                     db.session.rollback()
-                    return False, f"Database error: {str(e)}", errors
+                    return False, f"Database error: {str(e)}", errors, []
             else:
-                return False, "No valid student changes found", errors
+                return False, "No valid student changes found", errors, []
 
         except Exception as e:
-            return False, f"Error processing Excel file: {str(e)}", []
+            return False, f"Error processing Excel file: {str(e)}", [], []
     
     @staticmethod
     def create_course(course_data):

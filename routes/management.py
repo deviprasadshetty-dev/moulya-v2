@@ -738,6 +738,64 @@ def toggle_student_status(student_id):
     
     return redirect(url_for('management.students'))
 
+@management_bp.route('/students/bulk-toggle-status', methods=['POST'])
+@login_required('management')
+def bulk_toggle_student_status():
+    """Bulk toggle status for multiple students"""
+    try:
+        student_ids = request.form.getlist('student_ids[]')
+        action = request.form.get('action')  # 'activate' or 'deactivate'
+        
+        if not student_ids:
+            if is_ajax_request():
+                return jsonify({'success': False, 'message': 'No students selected'})
+            flash('No students selected', 'error')
+            return redirect(url_for('management.students'))
+        
+        success_count = 0
+        error_messages = []
+        
+        for student_id in student_ids:
+            try:
+                student = Student.query.get_or_404(int(student_id))
+                
+                if action == 'deactivate' and student.is_active:
+                    success, message = ManagementService.delete_student_permanently(int(student_id))
+                    if success:
+                        success_count += 1
+                    else:
+                        error_messages.append(f"{student.name}: {message}")
+                elif action == 'activate' and not student.is_active:
+                    student.is_active = True
+                    db.session.commit()
+                    success_count += 1
+                # Skip if action doesn't match current status
+                
+            except Exception as e:
+                error_messages.append(f"Student ID {student_id}: {str(e)}")
+        
+        message = f'Successfully processed {success_count} students'
+        if error_messages:
+            message += f'. Errors: {"; ".join(error_messages[:3])}'
+            if len(error_messages) > 3:
+                message += f' (+{len(error_messages)-3} more)'
+        
+        if is_ajax_request():
+            return jsonify({'success': success_count > 0, 'message': message})
+        
+        if success_count > 0:
+            flash(message, 'success')
+        else:
+            flash('No students were processed', 'warning')
+            
+    except Exception as e:
+        error_msg = f'Error processing bulk operation: {str(e)}'
+        if is_ajax_request():
+            return jsonify({'success': False, 'message': error_msg})
+        flash(error_msg, 'error')
+    
+    return redirect(url_for('management.students'))
+
 @management_bp.route('/courses/add', methods=['POST'])
 @login_required('management')
 def add_course():

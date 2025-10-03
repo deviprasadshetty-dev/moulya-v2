@@ -219,6 +219,59 @@
         link.click();
         document.body.removeChild(link);
     }
+
+    // Toggle individual student status
+    function toggleStudentStatus(studentId, studentName, isActive) {
+        const action = isActive ? 'deactivate' : 'activate';
+        const actionText = isActive ? 'Deactivate' : 'Activate';
+        
+        Swal.fire({
+            title: `${actionText} Student`,
+            text: `Are you sure you want to ${action} ${studentName}?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: isActive ? '#dc2626' : '#16a34a',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: actionText
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/management/students/${studentId}/toggle-status`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-Token': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            title: 'Success!',
+                            text: data.message,
+                            icon: 'success'
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: data.message,
+                            icon: 'error'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'An unexpected error occurred. Please try again.',
+                        icon: 'error'
+                    });
+                });
+            }
+        });
+    }
 </script>
 {% endblock %}
 
