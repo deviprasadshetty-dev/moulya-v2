@@ -624,7 +624,8 @@ def add_student():
             'course_id': int(request.form.get('course_id')),
             'academic_year': int(request.form.get('academic_year')),
             'current_semester': int(request.form.get('current_semester', 1)),
-            'email': request.form.get('email', '').strip() or None
+            'email': request.form.get('email', '').strip() or None,
+            'date_of_birth': request.form.get('date_of_birth', '').strip() or None
         }
         
         success, message = ManagementService.add_student(student_data)

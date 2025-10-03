@@ -472,6 +472,18 @@ class ManagementService:
             if not is_valid:
                 return False, message
             
+            # Validate date of birth
+            date_of_birth = student_data.get('date_of_birth')
+            if not date_of_birth:
+                return False, "Date of birth is required"
+            
+            try:
+                from datetime import datetime
+                if isinstance(date_of_birth, str):
+                    date_of_birth = datetime.strptime(date_of_birth, '%Y-%m-%d').date()
+            except ValueError:
+                return False, "Invalid date of birth format. Use YYYY-MM-DD"
+            
             # Check if roll number already exists
             existing_active = Student.query.filter_by(roll_number=student_data['roll_number'], is_active=True).first()
             if existing_active:
@@ -496,14 +508,15 @@ class ManagementService:
                 course_id=student_data['course_id'],
                 academic_year=student_data['academic_year'],
                 current_semester=student_data.get('current_semester', 1),
-                email=student_data.get('email')
+                email=student_data.get('email'),
+                date_of_birth=date_of_birth
             )
             
             # Generate username and password
             username = Student.generate_username(student.roll_number)
-            password = Student.generate_password()
+            password = Student.generate_password(date_of_birth)
             student.username = username
-            student.set_password(password)
+            student.set_password(date_of_birth)
             
             success, message = safe_add_and_commit(student)
             
@@ -558,8 +571,9 @@ class ManagementService:
                         col_class = idx
                         break
             col_email = find_col('email', 'email id', 'e-mail')
+            col_dob = find_col('date of birth', 'dob', 'birth date', 'birth_date', 'date_of_birth')
 
-            # If headers are missing, fall back to legacy fixed positions (A..E)
+            # If headers are missing, fall back to legacy fixed positions (A..F)
             if col_roll is None:
                 col_roll = 0
             if col_name is None:
@@ -570,6 +584,8 @@ class ManagementService:
                 col_ac_year = 3
             if col_email is None:
                 col_email = 4
+            if col_dob is None:
+                col_dob = 5
 
             import re
 
@@ -667,9 +683,30 @@ class ManagementService:
                         academic_year = 1
                     email_val = row[col_email] if col_email < len(row) else None
                     email = str(email_val).strip() if email_val and str(email_val).strip().lower() not in ['none', 'na', 'n/a'] else None
+                    
+                    # Parse date of birth
+                    date_of_birth = None
+                    if col_dob is not None and col_dob < len(row) and row[col_dob]:
+                        try:
+                            from datetime import datetime
+                            dob_val = str(row[col_dob]).strip()
+                            if dob_val and dob_val.lower() not in ['none', 'na', 'n/a', '']:
+                                # Try different date formats
+                                for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%d-%m-%Y', '%m-%d-%Y']:
+                                    try:
+                                        date_of_birth = datetime.strptime(dob_val, fmt).date()
+                                        break
+                                    except ValueError:
+                                        continue
+                                if date_of_birth is None:
+                                    errors.append(f"Row {row_num}: Invalid date of birth format. Use YYYY-MM-DD, DD/MM/YYYY, or MM/DD/YYYY")
+                                    continue
+                        except Exception:
+                            errors.append(f"Row {row_num}: Invalid date of birth format")
+                            continue
 
-                    if not all([roll_number, name, course_code, academic_year]):
-                        errors.append(f"Row {row_num}: Roll number, name, course code, and academic year are required")
+                    if not all([roll_number, name, course_code, academic_year, date_of_birth]):
+                        errors.append(f"Row {row_num}: Roll number, name, course code, academic year, and date of birth are required")
                         continue
 
                     # Validate data
@@ -748,14 +785,15 @@ class ManagementService:
                             course_id=course.id,
                             academic_year=academic_year,
                             current_semester=semester or 1,
-                            email=email
+                            email=email,
+                            date_of_birth=date_of_birth
                         )
                         
                         # Generate username and password for new student
                         username = Student.generate_username(student.roll_number)
-                        password = Student.generate_password()
+                        password = Student.generate_password(date_of_birth)
                         student.username = username
-                        student.set_password(password)
+                        student.set_password(date_of_birth)
 
                         students_to_create.append((student, password))
 

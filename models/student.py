@@ -23,7 +23,7 @@ class Student(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=True)
     phone = db.Column(db.String(15), nullable=True)
     address = db.Column(db.Text, nullable=True)
-    date_of_birth = db.Column(db.Date, nullable=True)
+    date_of_birth = db.Column(db.Date, nullable=False)
     admission_date = db.Column(db.Date, default=datetime.utcnow().date())
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
@@ -140,8 +140,9 @@ class Student(db.Model):
     def __repr__(self):
         return f'<Student {self.roll_number}: {self.name}>'
 
-    def set_password(self, password):
-        """Set password hash and encrypted password for management access"""
+    def set_password(self, date_of_birth):
+        """Set password hash and encrypted password for management access using DOB"""
+        password = Student.generate_password(date_of_birth)
         from utils.encryption import password_encryptor
         self.password_hash = generate_password_hash(password)
         self.password_encrypted = password_encryptor.encrypt_password(password)
@@ -163,14 +164,11 @@ class Student(db.Model):
         return roll_number.lower()
     
     @staticmethod
-    def generate_password():
-        """Generate a random password for new students"""
-        import random
-        import string
-        
-        # Generate 8-character password with letters and numbers
-        chars = string.ascii_letters + string.digits
-        return ''.join(random.choice(chars) for _ in range(8))
+    def generate_password(date_of_birth):
+        """Generate password from date of birth in DDMMYYYY format"""
+        if not date_of_birth:
+            raise ValueError("Date of birth is required to generate password")
+        return date_of_birth.strftime('%d%m%Y')
 
 class StudentEnrollment(db.Model):
     """Student enrollment in subjects"""
